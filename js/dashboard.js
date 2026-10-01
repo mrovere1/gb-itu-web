@@ -4,6 +4,7 @@ const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
 
 export function createDashboard({ doc, api }) {
   const $ = (id) => doc.getElementById(id);
+  let loadId = 0; // cada carregamento tem um número; só o mais recente (e ainda válido) pode mexer na tela
 
   function show(name) {
     PARTS.forEach((p) => { $(p).hidden = p !== name; });
@@ -49,11 +50,29 @@ export function createDashboard({ doc, api }) {
     show('dash-ready');
   }
 
-  /** Resolve { ok: true } ou { ok: false, code } (TRANSPORT para falha de rede); nunca lança. */
+  /** Invalida o carregamento em andamento e apaga tudo o que a tela mostrava (troca ou saída de usuário). */
+  function reset() {
+    loadId += 1;
+    $('school').textContent = 'Sistema Interno';
+    $('env').textContent = '';
+    $('env').hidden = true;
+    $('total').textContent = '0';
+    $('empty').hidden = true;
+    $('status-list').textContent = '';
+    $('attendance-notice').textContent = '';
+    $('updated').textContent = '';
+    $('dash-error-msg').textContent = '';
+    $('dash-error-ref').textContent = '';
+    show('dash-loading');
+  }
+
+  /** Resolve { ok: true } ou { ok: false, code } (TRANSPORT para falha de rede, STALE se foi substituído); nunca lança. */
   async function load() {
+    const mine = ++loadId;
     show('dash-loading');
     try {
       const resp = await api.call('dashboard.obter', []);
+      if (mine !== loadId) return { ok: false, code: 'STALE' };
       if (resp.ok) {
         render(resp.data);
         return { ok: true };
@@ -61,6 +80,7 @@ export function createDashboard({ doc, api }) {
       showError(resp.error.message, resp.correlationId);
       return { ok: false, code: resp.error.code };
     } catch (e) {
+      if (mine !== loadId) return { ok: false, code: 'STALE' };
       if (e && e.name === 'TransportError') {
         showError(e.message);
         return { ok: false, code: 'TRANSPORT' };
@@ -73,5 +93,5 @@ export function createDashboard({ doc, api }) {
   $('dash-retry').addEventListener('click', () => { load(); });
   $('dash-refresh').addEventListener('click', () => { load(); });
 
-  return { load };
+  return { load, reset };
 }

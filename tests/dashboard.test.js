@@ -111,3 +111,54 @@ test('tentar novamente e atualizar recarregam o painel', async () => {
   await flush();
   assert.equal(calls.length, 3);
 });
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((r) => { resolve = r; });
+  return { promise, resolve };
+}
+
+test('reset invalida o carregamento em andamento: resposta atrasada de outra sessão não aparece', async () => {
+  const dom = createDom();
+  const slow = deferred();
+  const dashboard = createDashboard({ doc: dom.doc, api: { call: () => slow.promise } });
+  const pending = dashboard.load();
+  dashboard.reset();
+  slow.resolve(ok({ ...DATA, escola: 'Escola do usuário A', totalAlunos: 9 }));
+  const result = await pending;
+  assert.deepEqual(result, { ok: false, code: 'STALE' });
+  assert.equal(dom.$('school').textContent, 'Sistema Interno');
+  assert.equal(dom.$('total').textContent, '0');
+  assert.deepEqual(dom.visible(PARTS), ['dash-loading']);
+});
+
+test('reset apaga o conteúdo já exibido (nada do usuário anterior fica no DOM)', async () => {
+  const { dom, dashboard } = setup(() => ok(DATA));
+  await dashboard.load();
+  assert.equal(dom.$('total').textContent, '3');
+  dashboard.reset();
+  assert.equal(dom.$('school').textContent, 'Sistema Interno');
+  assert.equal(dom.$('total').textContent, '0');
+  assert.equal(dom.$('status-list').children.length, 0);
+  assert.equal(dom.$('attendance-notice').textContent, '');
+  assert.equal(dom.$('updated').textContent, '');
+  assert.equal(dom.$('env').hidden, true);
+  assert.equal(dom.$('dash-error-msg').textContent, '');
+  assert.deepEqual(dom.visible(PARTS), ['dash-loading']);
+});
+
+test('duas atualizações sobrepostas: só a mais recente é exibida', async () => {
+  const dom = createDom();
+  const first = deferred();
+  const second = deferred();
+  const queue = [first, second];
+  const dashboard = createDashboard({ doc: dom.doc, api: { call: () => queue.shift().promise } });
+  const a = dashboard.load();
+  const b = dashboard.load();
+  second.resolve(ok({ ...DATA, totalAlunos: 7 }));
+  await b;
+  first.resolve(ok({ ...DATA, totalAlunos: 1 }));
+  const staleResult = await a;
+  assert.deepEqual(staleResult, { ok: false, code: 'STALE' });
+  assert.equal(dom.$('total').textContent, '7');
+});

@@ -26,7 +26,7 @@ export function loginErrorMessage(code) {
 }
 
 /**
- * deps: { firebase, now(), setInterval(fn, ms), clearInterval(id), idleMs, checkEveryMs, onIdle() }
+ * deps: { firebase, now(), setInterval(fn, ms), clearInterval(id), idleMs, checkEveryMs, onIdle(), onSignOutFailed() }
  * firebase: { onChange(cb), signIn(email, password), signOut(), hasUser(), getIdToken(force) }
  */
 export function createAuth(deps) {
@@ -41,11 +41,13 @@ export function createAuth(deps) {
     }
   }
 
+  // Devolve false se o Firebase não confirmou a saída: a interface não pode declarar que saiu.
   async function safeSignOut() {
     try {
       await deps.firebase.signOut();
+      return true;
     } catch (e) {
-      // sem ação: a interface já trata como desconectado
+      return false;
     }
   }
 
@@ -56,7 +58,8 @@ export function createAuth(deps) {
     signedIn = false;
     stopTimer();
     deps.onIdle();
-    await safeSignOut();
+    const signedOut = await safeSignOut();
+    if (!signedOut && deps.onSignOutFailed) deps.onSignOutFailed();
     return true;
   }
 
@@ -84,10 +87,11 @@ export function createAuth(deps) {
     }
   }
 
+  /** true se o Firebase confirmou a saída; false se falhou (a sessão pode continuar válida neste navegador). */
   async function logout() {
     signedIn = false;
     stopTimer();
-    await safeSignOut();
+    return safeSignOut();
   }
 
   async function getIdToken(force) {

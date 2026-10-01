@@ -9,6 +9,8 @@ const AUTH_FAILURES = Object.freeze({
 });
 const IDLE_MESSAGE = 'Sessão encerrada por inatividade. Entre novamente.';
 const GENERIC_LOGIN_ERROR = 'Não foi possível entrar. Tente novamente.';
+const SIGNOUT_FAILED_MESSAGE = 'Não foi possível encerrar a sessão com segurança. Feche esta aba do navegador antes de deixar o computador.';
+const UNEXPECTED_RESPONSE = 'O servidor respondeu de forma inesperada. Tente novamente em instantes.';
 const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'touchstart', 'scroll'];
 
 export function createApp({ doc, auth, api, dashboard }) {
@@ -42,6 +44,8 @@ export function createApp({ doc, auth, api, dashboard }) {
   function toLogin() {
     generation += 1;
     signedIn = false;
+    dashboard.reset();
+    $('user-line').textContent = '';
     const message = pendingMessage;
     pendingMessage = '';
     showLogin(message);
@@ -50,7 +54,8 @@ export function createApp({ doc, auth, api, dashboard }) {
   async function endSession(message) {
     pendingMessage = message;
     generation += 1;
-    await auth.logout();
+    const signedOut = await auth.logout();
+    if (!signedOut) pendingMessage = (pendingMessage ? pendingMessage + ' ' : '') + SIGNOUT_FAILED_MESSAGE;
     if (pendingMessage) toLogin();
   }
 
@@ -68,19 +73,25 @@ export function createApp({ doc, auth, api, dashboard }) {
       return;
     }
     if (mine !== generation) return;
-    if (resp.ok) {
-      $('user-line').textContent = resp.data.usuario.nome + ' · ' + resp.data.usuario.perfil;
-      show('view-app');
-      const result = await dashboard.load();
-      if (mine === generation && !result.ok && AUTH_FAILURES[result.code]) await endSession(AUTH_FAILURES[result.code]);
-      return;
+    try {
+      if (resp.ok) {
+        const usuario = resp.data.usuario;
+        $('user-line').textContent = usuario.nome + ' · ' + usuario.perfil;
+        show('view-app');
+        const result = await dashboard.load();
+        if (mine === generation && !result.ok && AUTH_FAILURES[result.code]) await endSession(AUTH_FAILURES[result.code]);
+        return;
+      }
+      const code = resp.error && resp.error.code;
+      if (AUTH_FAILURES[code]) {
+        await endSession(AUTH_FAILURES[code]);
+        return;
+      }
+      showSessionError(resp.error.message, resp.correlationId);
+    } catch (e) {
+      // Resposta com formato inesperado: nunca deixar a tela presa em "Entrando…".
+      if (mine === generation) showSessionError(UNEXPECTED_RESPONSE);
     }
-    const code = resp.error && resp.error.code;
-    if (AUTH_FAILURES[code]) {
-      await endSession(AUTH_FAILURES[code]);
-      return;
-    }
-    showSessionError(resp.error.message, resp.correlationId);
   }
 
   function handleUser(user) {
@@ -113,13 +124,20 @@ export function createApp({ doc, auth, api, dashboard }) {
   async function onLogout() {
     pendingMessage = '';
     generation += 1;
-    await auth.logout();
+    const signedOut = await auth.logout();
+    if (!signedOut) pendingMessage = SIGNOUT_FAILED_MESSAGE;
     toLogin();
   }
 
   /** Chamado pela autenticação logo antes de encerrar por inatividade. */
   function onIdle() {
     pendingMessage = IDLE_MESSAGE;
+  }
+
+  /** Chamado pela autenticação quando a saída por inatividade não foi confirmada pelo Firebase. */
+  function onSignOutFailed() {
+    pendingMessage = (pendingMessage ? pendingMessage + ' ' : '') + SIGNOUT_FAILED_MESSAGE;
+    toLogin();
   }
 
   function start() {
@@ -133,5 +151,5 @@ export function createApp({ doc, auth, api, dashboard }) {
     auth.start(handleUser);
   }
 
-  return { start, onIdle };
+  return { start, onIdle, onSignOutFailed };
 }

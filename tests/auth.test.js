@@ -35,6 +35,7 @@ function setup({ idleMs = 1000 } = {}) {
     idleMs,
     checkEveryMs: 100,
     onIdle: () => events.push(['idle']),
+    onSignOutFailed: () => events.push(['signOutFailed']),
   });
   const users = [];
   auth.start((u) => users.push(u));
@@ -149,20 +150,25 @@ test('inatividade: sem sessão não faz nada; touch sem sessão é inofensivo', 
   assert.equal(events.length, 0);
 });
 
-test('logout para o monitor de inatividade; falha do Firebase no logout não lança', async () => {
-  const { auth, firebase, emit, ticking } = setup();
+test('logout para o monitor de inatividade e devolve true quando o Firebase confirma', async () => {
+  const { auth, emit, ticking } = setup();
   emit({ email: 'a@b.com' });
-  await auth.logout();
+  assert.equal(await auth.logout(), true);
   assert.equal(ticking(), false);
-  emit({ email: 'a@b.com' });
-  firebase.signOutFails = true;
-  await auth.logout();
 });
 
-test('checkIdle sobrevive a falha ao sair', async () => {
-  const { auth, firebase, emit, advance } = setup({ idleMs: 1000 });
+test('logout: falha do Firebase não lança, mas devolve false (a interface não pode declarar que saiu)', async () => {
+  const { auth, firebase, emit } = setup();
+  emit({ email: 'a@b.com' });
+  firebase.signOutFails = true;
+  assert.equal(await auth.logout(), false);
+});
+
+test('checkIdle sobrevive a falha ao sair e avisa que a saída falhou', async () => {
+  const { auth, firebase, events, emit, advance } = setup({ idleMs: 1000 });
   emit({ email: 'a@b.com' });
   firebase.signOutFails = true;
   advance(5000);
   assert.equal(await auth.checkIdle(), true);
+  assert.deepEqual(events.map((e) => e[0]), ['idle', 'signOut', 'signOutFailed']);
 });

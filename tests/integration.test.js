@@ -36,7 +36,7 @@ function build({ server, existingUser = null, tokens = ['tok-1'] } = {}) {
   let app = null;
   const auth = createAuth({
     firebase, now: () => now, setInterval: (fn) => { tick = fn; return 1; }, clearInterval: () => { tick = null; },
-    idleMs: 1000, checkEveryMs: 100, onIdle: () => app.onIdle(),
+    idleMs: 1000, checkEveryMs: 100, onIdle: () => app.onIdle(), onSignOutFailed: () => app.onSignOutFailed(),
   });
   class FakeAbort { constructor() { this.signal = { aborted: false, addEventListener() {} }; } abort() { this.signal.aborted = true; } }
   const api = createApi({
@@ -45,7 +45,7 @@ function build({ server, existingUser = null, tokens = ['tok-1'] } = {}) {
     fetch: async (url, init) => {
       const body = JSON.parse(init.body);
       requests.push(body);
-      return { text: async () => JSON.stringify(server(body, requests.length)) };
+      return { text: async () => JSON.stringify(await server(body, requests.length)) };
     },
   });
   const dashboard = createDashboard({ doc: dom.doc, api });
@@ -117,4 +117,32 @@ test('inatividade de ponta a ponta: passado o prazo, o monitor encerra e o login
   await flush();
   assert.deepEqual(dom.visible(VIEWS), ['view-login']);
   assert.match(dom.$('login-error').textContent, /inatividade/);
+});
+
+test('troca de usuário com painel pendente: a resposta atrasada do usuário anterior não sobrescreve a do novo', async () => {
+  let release;
+  const slowA = new Promise((resolve) => { release = resolve; });
+  let dashboards = 0;
+  const server = (body) => {
+    if (body.acao === 'sessao') return envelope({ usuario: { nome: 'Ana Ficticia', perfil: 'Gestor' } });
+    dashboards += 1;
+    return dashboards === 1 ? slowA : envelope({ ...DASH, totalAlunos: 7 });
+  };
+  const { dom, app } = build({ server, existingUser: { email: 'a@exemplo.com' } });
+  app.start();
+  await flush();
+  await flush();
+  dom.click('logout');
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  dom.$('login-email').value = 'b@exemplo.com';
+  dom.$('login-password').value = 'segredo';
+  dom.submit('login-form');
+  await flush();
+  await flush();
+  assert.equal(dom.$('total').textContent, '7');
+  release(envelope({ ...DASH, totalAlunos: 1, escola: 'Escola do usuário A' }));
+  await flush();
+  assert.equal(dom.$('total').textContent, '7');
+  assert.notEqual(dom.$('school').textContent, 'Escola do usuário A');
 });

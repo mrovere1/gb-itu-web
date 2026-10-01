@@ -15,6 +15,14 @@ export class TransportError extends Error {
   }
 }
 
+// Envelope completo: ok:true exige `data`; ok:false exige error.code e error.message em texto.
+// Qualquer coisa diferente é resposta inválida (assim a interface nunca fica presa esperando campos que não vêm).
+function isEnvelope(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.ok !== 'boolean') return false;
+  if (body.ok) return Object.prototype.hasOwnProperty.call(body, 'data');
+  return !!body.error && typeof body.error === 'object' && typeof body.error.code === 'string' && typeof body.error.message === 'string';
+}
+
 const NOT_AUTHENTICATED = Object.freeze({
   ok: false,
   data: null,
@@ -50,9 +58,7 @@ export function createApi(deps) {
       } catch (e) {
         throw new TransportError('invalid-response');
       }
-      if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.ok !== 'boolean') {
-        throw new TransportError('invalid-response');
-      }
+      if (!isEnvelope(body)) throw new TransportError('invalid-response');
       return body;
     } catch (e) {
       if (e && e.name === 'TransportError') throw e;

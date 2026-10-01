@@ -8,7 +8,7 @@ const SESSAO = { ok: true, data: { usuario: { nome: 'Ana Ficticia', perfil: 'Ges
 const fail = (code, message) => ({ ok: false, data: null, error: { code, message }, correlationId: 'c9' });
 const transport = (message) => Object.assign(new Error(message), { name: 'TransportError', kind: 'network' });
 
-function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = null } = {}) {
+function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = null, logoutFails = false } = {}) {
   const dom = createDom();
   const events = [];
   let onUser = null;
@@ -22,12 +22,12 @@ function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = nul
       events.push(['login', email, password]);
       if (auth.loginError) throw Object.assign(new Error(auth.loginError), { name: 'AuthError' });
     },
-    logout: async () => { events.push(['logout']); onUser(null); },
+    logout: async () => { events.push(['logout']); if (logoutFails) return false; onUser(null); return true; },
     touch: () => events.push(['touch']),
     checkIdle: async () => { events.push(['checkIdle']); return false; },
   };
   const api = { call: async (acao) => { events.push(['api', acao]); return next(queue.sessao); } };
-  const dash = { load: async () => { events.push(['dashboard']); return next(queue.dashboard); } };
+  const dash = { load: async () => { events.push(['dashboard']); return next(queue.dashboard); }, reset: () => events.push(['reset']) };
   const app = createApp({ doc: dom.doc, auth, api, dashboard: dash });
   return { dom, events, app, auth, emit: (u) => onUser(u), count: (name) => events.filter((e) => e[0] === name).length };
 }
@@ -49,7 +49,7 @@ test('login com sucesso: entra, chama sessao e só então mostra o sistema e car
   dom.$('login-password').value = 'segredo';
   assert.equal(dom.submit('login-form'), true); // preventDefault chamado
   await flush();
-  assert.deepEqual(events[0], ['login', 'ana@exemplo.com', 'segredo']);
+  assert.deepEqual(events.find((e) => e[0] === 'login'), ['login', 'ana@exemplo.com', 'segredo']);
   assert.equal(dom.$('login-password').value, '', 'a senha é apagada do campo');
   emit({ email: 'ana@exemplo.com' });
   assert.deepEqual(dom.visible(VIEWS), ['view-session'], 'enquanto sessao não responde, o sistema não aparece');
@@ -198,12 +198,12 @@ test('resposta atrasada de uma sessão que já terminou não reabre o sistema', 
   const auth = {
     start: (cb) => { onUser = cb; },
     login: async () => {},
-    logout: async () => { onUser(null); },
+    logout: async () => { onUser(null); return true; },
     touch() {},
     checkIdle: async () => false,
   };
   const api = { call: async () => { await slow; return SESSAO; } };
-  const app = createApp({ doc: dom.doc, auth, api, dashboard: { load: async () => ({ ok: true }) } });
+  const app = createApp({ doc: dom.doc, auth, api, dashboard: { load: async () => ({ ok: true }), reset() {} } });
   app.start();
   onUser({ email: 'a@b.com' });
   onUser(null);
@@ -223,4 +223,67 @@ test('qualquer interação renova a atividade; voltar à aba confere a inativida
   dom.doc.hidden = false;
   dom.docEvent('visibilitychange');
   assert.equal(count('checkIdle'), 1);
+});
+
+test('envelope sem os campos esperados não deixa a tela presa: erro recuperável com tentar novamente', async () => {
+  const incompleto = { ok: true, data: {}, error: null, correlationId: 'c3' };
+  const { dom, app, emit, count } = setup({ sessao: [incompleto, SESSAO] });
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-session']);
+  assert.equal(dom.$('session-error-box').hidden, false);
+  assert.equal(dom.$('session-loading').hidden, true);
+  dom.click('session-retry');
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-app']);
+  assert.equal(count('api'), 2);
+});
+
+test('voltar ao login limpa o painel e o nome do usuário (nada do usuário anterior fica no DOM)', async () => {
+  for (const how of ['sair', 'negado']) {
+    const sessao = how === 'negado' ? [SESSAO] : [SESSAO];
+    const { dom, app, emit, count } = setup({ sessao, dashboard: how === 'negado' ? [{ ok: false, code: 'ACESSO_NEGADO' }] : [{ ok: true }] });
+    app.start();
+    emit({ email: 'a@b.com' });
+    await flush();
+    if (how === 'sair') { dom.click('logout'); await flush(); }
+    assert.deepEqual(dom.visible(VIEWS), ['view-login'], how);
+    assert.equal(dom.$('user-line').textContent, '', how);
+    assert.ok(count('reset') >= 1, how);
+  }
+});
+
+test('falha ao encerrar a sessão: o login aparece (dados escondidos) com aviso de que não saiu com segurança', async () => {
+  const { dom, app, emit, count } = setup({ logoutFails: true });
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  dom.click('logout');
+  await flush();
+  assert.equal(count('logout'), 1);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.match(dom.$('login-error').textContent, /não foi possível encerrar a sessão com segurança/i);
+  assert.equal(dom.$('user-line').textContent, '');
+});
+
+test('acesso negado com falha ao sair: mantém o aviso do motivo e acrescenta o de segurança', async () => {
+  const { dom, app, emit } = setup({ sessao: [fail('ACESSO_NEGADO', 'x')], logoutFails: true });
+  app.start();
+  emit({ email: 'x@exemplo.com' });
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.match(dom.$('login-error').textContent, /não tem acesso ao sistema/);
+  assert.match(dom.$('login-error').textContent, /encerrar a sessão com segurança/i);
+});
+
+test('saída por inatividade que falhou: o login aparece com o aviso de segurança', async () => {
+  const { dom, app, emit } = setup();
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  app.onIdle();
+  app.onSignOutFailed();
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.match(dom.$('login-error').textContent, /encerrar a sessão com segurança/i);
 });

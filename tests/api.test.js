@@ -121,6 +121,16 @@ test('resposta que não é JSON ou não é envelope: TransportError(invalid-resp
   }
 });
 
+test('envelope incompleto ou malformado é resposta inválida (não deixa a interface presa)', async () => {
+  const bad = ['{"ok":true}', '{"ok":false}', '{"ok":false,"error":null}', '{"ok":false,"error":{"code":1,"message":"x"}}', '{"ok":false,"error":{"code":"X"}}', '{"ok":false,"error":"texto"}'];
+  for (const body of bad) {
+    const { api } = setup({ responses: [body] });
+    await assert.rejects(api.call('sessao'), (e) => e.kind === 'invalid-response', body);
+  }
+  const good = setup({ responses: [ok(null)] }); // data null presente é um envelope válido
+  assert.equal((await good.api.call('sessao')).ok, true);
+});
+
 test('falha ao obter o token (SDK): TransportError(network)', async () => {
   const { api } = setup({ getIdToken: async () => { throw new Error('sdk'); } });
   await assert.rejects(api.call('sessao'), (e) => e.kind === 'network');
