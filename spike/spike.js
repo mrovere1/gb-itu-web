@@ -1,10 +1,11 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
-  getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  initializeAuth, browserSessionPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 const { firebase: firebaseConfig, apiUrl } = window.SPIKE_CONFIG;
-const auth = getAuth(initializeApp(firebaseConfig));
+// Sem popupRedirectResolver: o login é só por e-mail/senha e isso evita carregar apis.google.com e o iframe de login.
+const auth = initializeAuth(initializeApp(firebaseConfig), { persistence: browserSessionPersistence });
 const $ = (id) => document.getElementById(id);
 const log = (msg) => { $('log').textContent += msg + '\n'; };
 
@@ -17,11 +18,9 @@ $('hosts').addEventListener('click', () => {
   log('Servidores contatados: ' + [...hosts].sort().join(', '));
 });
 
-await setPersistence(auth, browserSessionPersistence);
-
 onAuthStateChanged(auth, (user) => {
   $('estado').textContent = user ? 'Logado como ' + user.email : 'Sem sessão';
-  ['chamar', 'adulterado', 'forjado', 'sair'].forEach((id) => { $(id).disabled = !user; });
+  ['chamar', 'adulterado', 'forjado', 'renovar', 'sair'].forEach((id) => { $(id).disabled = !user; });
 });
 
 $('f').addEventListener('submit', async (e) => {
@@ -57,6 +56,15 @@ $('adulterado').addEventListener('click', async () => {
 $('forjado').addEventListener('click', async () => {
   const [h, p] = (await auth.currentUser.getIdToken()).split('.');
   chamar([h, p, 'assinaturaforjada'].join('.'), 'token forjado');
+});
+$('renovar').addEventListener('click', async () => {
+  const t0 = performance.now();
+  try {
+    const t = await auth.currentUser.getIdToken(true);
+    log(`[renovar token] ${Math.round(performance.now() - t0)} ms -> novo token de ${t.length} caracteres`);
+  } catch (err) {
+    log('[renovar token] FALHOU: ' + err.code);
+  }
 });
 $('lixo').addEventListener('click', () => chamar('isto-nao-e-um-token', 'lixo'));
 $('sair').addEventListener('click', () => signOut(auth));
