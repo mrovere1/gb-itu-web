@@ -29,7 +29,7 @@ HTTP 200 sempre. Envelope: `{ "ok": true|false, "data": ..., "error": { "code", 
 | Ação | Argumentos | Permissão |
 |---|---|---|
 | `sessao` | — | usuário ativo (audita LOGIN) |
-| `dashboard.obter` | — | `dashboard:ver` |
+| `dashboard.obter` | `[{ competencia? }]` (`AAAA-MM`, padrão: mês de hoje; só vale para `dashboard:completo`) | `dashboard:ver` (visão completa: `dashboard:completo`) |
 | `alunos.listar` | `[params]` | `alunos:listar` |
 | `alunos.obter` | `[studentId]` | `alunos:listar` |
 | `alunos.criar` | `[payload]` | `alunos:criar` |
@@ -51,3 +51,15 @@ HTTP 200 sempre. Envelope: `{ "ok": true|false, "data": ..., "error": { "code", 
 
 O endpoint é público: toda ação exige token válido e falha fechada. Token inválido nunca grava na planilha. O Apps Script não vê a origem
 da página, então não há restrição por origem: a proteção é o token. Exemplos: `tests/fixtures/contract/`.
+
+## Painel (`dashboard.obter`)
+
+Uma única chamada devolve tudo. Todos os perfis recebem a visão básica (`escola`, `ambiente`, `usuario`, `alunosPorStatus`, `totalAlunos`,
+`atualizadoEm`, `atualizadoEmLocal`, `presenca`). Quem tem `dashboard:completo` (Administrador) recebe também:
+`completo: true`, `competencia`, `hoje`, `indicadores.principais[]` e `indicadores.complementares[]`, `graficos`, `aniversariantes[]` e
+`detalhes` (listas dos cartões clicáveis). Competência fora de `AAAA-MM` (2020 até o ano seguinte) devolve `VALIDACAO` com `campo: competencia`.
+
+Cada indicador: `{ id, titulo, estado, formato, valor, secundario, mensagem, ajuda, detalhe }`.
+`estado` é `ok`, `aguardando` (falta dado lançado) ou `nao_configurado` (falta módulo). Fora de `ok`, `valor` é sempre `null`
+e `mensagem` explica: o portal nunca mostra zero para indicador sem dado. Aniversariantes trazem só `dia`, `mes` e a idade que se completa
+(nunca o ano de nascimento). Não há cache no servidor: a resposta contém nomes e é recalculada a cada chamada (uma leitura em lote de `Alunos`).
