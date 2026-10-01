@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Teste descartável de login</title>
+  </head>
+  <body>
+    <h1>Teste descartável de login</h1>
+    <p id="estado">Carregando…</p>
+    <form id="f">
+      <label>E-mail <input id="email" type="email" autocomplete="username"></label>
+      <label>Senha <input id="senha" type="password" autocomplete="current-password"></label>
+      <button type="submit">Entrar</button>
+    </form>
+    <p>
+      <button id="chamar" disabled>Chamar a API (token válido)</button>
+      <button id="adulterado" disabled>Token com assinatura adulterada</button>
+      <button id="forjado" disabled>Token forjado</button>
+      <button id="lixo">Lixo no lugar do token</button>
+      <button id="sair" disabled>Sair</button>
+    </p>
+    <pre id="log"></pre>
+    <script src="config.js"></script>
+    <script type="module" src="spike.js"></script>
+  </body>
+</html>
