@@ -1,0 +1,3 @@
+/* Estilos do portal. O conteúdo final entra no Task 4. */
+html:not(.ok) body { display: none; }
+[hidden] { display: none !important; }
