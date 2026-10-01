@@ -1,0 +1,9 @@
+{
+  "request": { "acao": "sessao", "token": "<ID token do Firebase>", "args": [] },
+  "response": {
+    "ok": true,
+    "data": { "usuario": { "nome": "Nome do Usuário", "perfil": "Administrador" } },
+    "error": null,
+    "correlationId": "00000000-0000-4000-8000-000000000000"
+  }
+}

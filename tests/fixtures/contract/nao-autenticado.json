@@ -1,0 +1,9 @@
+{
+  "request": { "acao": "alunos.listar", "token": "token-invalido", "args": [] },
+  "response": {
+    "ok": false,
+    "data": null,
+    "error": { "code": "NAO_AUTENTICADO", "message": "Sessão inválida ou expirada. Entre novamente." },
+    "correlationId": "00000000-0000-4000-8000-000000000000"
+  }
+}
