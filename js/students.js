@@ -210,6 +210,13 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
     loadList();
   }
 
+  /** Abre o detalhe de um aluno a partir de outra tela (painel). A lista é carregada antes, para o perfil e as opções de edição. */
+  async function open(id) {
+    loaded = true;
+    await loadList();
+    await openDetail(id);
+  }
+
   /** Apaga tudo do usuário anterior e invalida respostas pendentes (troca ou saída de usuário). */
   function reset() {
     requestId += 1;
@@ -242,5 +249,5 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
   $('detail-back').addEventListener('click', backToList);
   $('detail-edit').addEventListener('click', openEdit);
 
-  return { activate, reset };
+  return { activate, open, reset };
 }

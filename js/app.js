@@ -35,6 +35,12 @@ export function createApp({ doc, auth, api, dashboard, students }) {
     if (onStudents) students.activate();
   }
 
+  /** Abre o cadastro de um aluno a partir do painel. */
+  function openStudent(id) {
+    students.open(id);
+    showTab('students');
+  }
+
   function showLogin(message) {
     $('login-password').value = '';
     $('login-error').textContent = message || '';
@@ -171,5 +177,5 @@ export function createApp({ doc, auth, api, dashboard, students }) {
     auth.start(handleUser);
   }
 
-  return { start, onIdle, onSignOutFailed, onAuthFailure };
+  return { start, onIdle, onSignOutFailed, onAuthFailure, openStudent };
 }

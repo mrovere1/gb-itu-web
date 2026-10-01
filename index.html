@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=e08bce1c73" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=e08bce1c73">
-    <script src="js/framebust.js?v=e08bce1c73"></script>
+    <link rel="icon" href="img/icone.png?v=7990cd7fbd" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=7990cd7fbd">
+    <script src="js/framebust.js?v=7990cd7fbd"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=e08bce1c73" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=7990cd7fbd" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -51,7 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
-        <img class="brand" src="img/icone.png?v=e08bce1c73" alt="" width="256" height="191">
+        <img class="brand" src="img/icone.png?v=7990cd7fbd" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -76,21 +76,85 @@
         </section>
 
         <section id="dash-ready" hidden>
-          <div class="card">
+          <div class="dash-head">
+            <h2 id="dash-title">Visão geral</h2>
+            <div class="dash-controls">
+              <div class="field" id="dash-comp-box" hidden>
+                <label for="dash-comp">Competência</label>
+                <input id="dash-comp" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+              </div>
+              <button id="dash-refresh" type="button">Atualizar</button>
+            </div>
+          </div>
+          <p class="muted" id="updated" role="status" aria-live="polite"></p>
+
+          <div id="dash-basic" class="card">
             <h2>Alunos por status</h2>
             <p class="total"><span id="total">0</span> <span class="muted">alunos no total</span></p>
             <p id="empty" class="muted" hidden>Nenhum aluno cadastrado ainda.</p>
             <ul id="status-list" class="status-list"></ul>
           </div>
 
+          <div id="dash-admin" hidden>
+            <section aria-labelledby="kpi-main-title">
+              <h3 id="kpi-main-title" class="sr-only">Indicadores prioritários</h3>
+              <div id="kpi-main" class="kpi-grid kpi-grid-main"></div>
+            </section>
+            <section aria-labelledby="kpi-more-title">
+              <h3 id="kpi-more-title" class="sr-only">Indicadores complementares</h3>
+              <div id="kpi-more" class="kpi-grid"></div>
+            </section>
+            <div class="dash-cols">
+              <div class="dash-charts">
+                <section class="card" aria-labelledby="chart-status-title">
+                  <h3 id="chart-status-title">Situação dos alunos</h3>
+                  <div id="chart-status"></div>
+                </section>
+                <section class="card" aria-labelledby="chart-revenue-title">
+                  <h3 id="chart-revenue-title">Receita prevista × recebida</h3>
+                  <div id="chart-revenue"></div>
+                </section>
+                <section class="card" aria-labelledby="chart-occupancy-title">
+                  <h3 id="chart-occupancy-title">Ocupação por turma</h3>
+                  <div id="chart-occupancy"></div>
+                </section>
+              </div>
+              <aside class="card" aria-labelledby="bday-title">
+                <h3 id="bday-title">Aniversariantes do mês</h3>
+                <ul id="bday-list" class="bday-list"></ul>
+                <p id="bday-empty" class="muted" hidden>Não há aniversariantes neste mês.</p>
+              </aside>
+            </div>
+          </div>
+
           <div class="card notice">
             <h2>Presença</h2>
             <p id="attendance-notice"></p>
           </div>
-
-          <p class="muted" id="updated"></p>
-          <button id="dash-refresh" type="button">Atualizar</button>
         </section>
+
+        <div id="drawer" class="drawer" hidden>
+          <div id="drawer-backdrop" class="drawer-backdrop"></div>
+          <section id="drawer-panel" class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title" tabindex="-1">
+            <div class="toolbar-row">
+              <h3 id="drawer-title"></h3>
+              <button id="drawer-close" type="button" class="secondary">Fechar</button>
+            </div>
+            <div class="filters">
+              <div class="field">
+                <label for="drawer-q">Buscar por nome</label>
+                <input id="drawer-q" type="search" maxlength="60" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="drawer-sort">Ordenar</label>
+                <select id="drawer-sort"><option value="az">Nome (A a Z)</option><option value="za">Nome (Z a A)</option></select>
+              </div>
+            </div>
+            <p id="drawer-count" class="muted" role="status" aria-live="polite"></p>
+            <ul id="drawer-list" class="student-list"></ul>
+            <p id="drawer-empty" class="muted" hidden></p>
+          </section>
+        </div>
         </div>
 
       <div id="view-students" hidden>
@@ -235,6 +299,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=e08bce1c73"></script>
+    <script type="module" src="js/main.js?v=7990cd7fbd"></script>
   </body>
 </html>

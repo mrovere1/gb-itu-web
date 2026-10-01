@@ -1,12 +1,12 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=e08bce1c73';
-import { loadFirebase } from './firebase.js?v=e08bce1c73';
-import { createApi } from './api.js?v=e08bce1c73';
-import { createAuth } from './auth.js?v=e08bce1c73';
-import { createDashboard } from './dashboard.js?v=e08bce1c73';
-import { createStudentForm } from './student-form.js?v=e08bce1c73';
-import { createStudents } from './students.js?v=e08bce1c73';
-import { createApp } from './app.js?v=e08bce1c73';
+import { CONFIG } from './config.js?v=7990cd7fbd';
+import { loadFirebase } from './firebase.js?v=7990cd7fbd';
+import { createApi } from './api.js?v=7990cd7fbd';
+import { createAuth } from './auth.js?v=7990cd7fbd';
+import { createDashboard } from './dashboard.js?v=7990cd7fbd';
+import { createStudentForm } from './student-form.js?v=7990cd7fbd';
+import { createStudents } from './students.js?v=7990cd7fbd';
+import { createApp } from './app.js?v=7990cd7fbd';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -32,7 +32,7 @@ const api = createApi({
   clearTimeout: (id) => window.clearTimeout(id),
 });
 
-const dashboard = createDashboard({ doc: document, api });
+const dashboard = createDashboard({ doc: document, api, openStudent: (id) => app.openStudent(id) });
 const students = createStudents({
   doc: document,
   api,

@@ -1,9 +1,14 @@
 // Painel inicial. Texto do servidor entra sempre por textContent. Não importa nada: recebe doc e api por injeção.
 
-const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
+import { createAdminDashboard } from './dashboard-admin.js?v=7990cd7fbd';
 
-export function createDashboard({ doc, api }) {
+const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
+const COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function createDashboard({ doc, api, openStudent = () => {} }) {
   const $ = (id) => doc.getElementById(id);
+  const admin = createAdminDashboard({ doc, openStudent });
+  let competence = null; // só o Administrador escolhe competência; nos demais perfis fica nulo
   let loadId = 0; // cada carregamento tem um número; só o mais recente (e ainda válido) pode mexer na tela
 
   function show(name) {
@@ -34,6 +39,18 @@ export function createDashboard({ doc, api }) {
     $('attendance-notice').textContent = data.presenca.aviso;
     $('updated').textContent = 'Atualizado em ' + formatLocal(data.atualizadoEm);
 
+    const full = data.completo === true;
+    $('dash-basic').hidden = full;
+    $('dash-comp-box').hidden = !full;
+    if (full) {
+      competence = data.competencia;
+      $('dash-comp').value = data.competencia;
+      admin.render(data);
+    } else {
+      competence = null;
+      admin.reset();
+    }
+
     const list = $('status-list');
     list.textContent = '';
     $('empty').hidden = data.totalAlunos > 0;
@@ -63,15 +80,27 @@ export function createDashboard({ doc, api }) {
     $('updated').textContent = '';
     $('dash-error-msg').textContent = '';
     $('dash-error-ref').textContent = '';
+    competence = null;
+    $('dash-comp').value = '';
+    $('dash-comp-box').hidden = true;
+    $('dash-basic').hidden = false;
+    admin.reset();
     show('dash-loading');
+  }
+
+  function busy(on) {
+    $('dash-refresh').disabled = on;
+    $('dash-refresh').textContent = on ? 'Atualizando…' : 'Atualizar';
   }
 
   /** Resolve { ok: true } ou { ok: false, code } (TRANSPORT para falha de rede, STALE se foi substituído); nunca lança. */
   async function load() {
     const mine = ++loadId;
-    show('dash-loading');
+    const refreshing = !$('dash-ready').hidden; // atualização com o painel já na tela: mantém o conteúdo
+    if (refreshing) busy(true);
+    else show('dash-loading');
     try {
-      const resp = await api.call('dashboard.obter', []);
+      const resp = await api.call('dashboard.obter', competence ? [{ competencia: competence }] : []);
       if (mine !== loadId) return { ok: false, code: 'STALE' };
       if (resp.ok) {
         render(resp.data);
@@ -87,11 +116,19 @@ export function createDashboard({ doc, api }) {
       }
       showError('Não foi possível exibir os dados. Tente novamente.');
       return { ok: false, code: 'CLIENT' };
+    } finally {
+      if (mine === loadId) busy(false);
     }
   }
 
   $('dash-retry').addEventListener('click', () => { load(); });
   $('dash-refresh').addEventListener('click', () => { load(); });
+  $('dash-comp').addEventListener('change', () => {
+    const value = $('dash-comp').value;
+    if (!COMPETENCIA.test(value) || value === competence) { $('dash-comp').value = competence || ''; return; }
+    competence = value;
+    load();
+  });
 
   return { load, reset };
 }
