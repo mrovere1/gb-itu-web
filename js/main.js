@@ -1,10 +1,12 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=17a9cce0e9';
-import { loadFirebase } from './firebase.js?v=17a9cce0e9';
-import { createApi } from './api.js?v=17a9cce0e9';
-import { createAuth } from './auth.js?v=17a9cce0e9';
-import { createDashboard } from './dashboard.js?v=17a9cce0e9';
-import { createApp } from './app.js?v=17a9cce0e9';
+import { CONFIG } from './config.js?v=b30070865a';
+import { loadFirebase } from './firebase.js?v=b30070865a';
+import { createApi } from './api.js?v=b30070865a';
+import { createAuth } from './auth.js?v=b30070865a';
+import { createDashboard } from './dashboard.js?v=b30070865a';
+import { createStudentForm } from './student-form.js?v=b30070865a';
+import { createStudents } from './students.js?v=b30070865a';
+import { createApp } from './app.js?v=b30070865a';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -31,5 +33,11 @@ const api = createApi({
 });
 
 const dashboard = createDashboard({ doc: document, api });
-app = createApp({ doc: document, auth, api, dashboard });
+const students = createStudents({
+  doc: document,
+  api,
+  createForm: createStudentForm,
+  onAuthFailure: (code) => app.onAuthFailure(code),
+});
+app = createApp({ doc: document, auth, api, dashboard, students });
 app.start();

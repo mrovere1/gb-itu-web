@@ -13,7 +13,7 @@ const SIGNOUT_FAILED_MESSAGE = 'Não foi possível encerrar a sessão com segura
 const UNEXPECTED_RESPONSE = 'O servidor respondeu de forma inesperada. Tente novamente em instantes.';
 const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'touchstart', 'scroll'];
 
-export function createApp({ doc, auth, api, dashboard }) {
+export function createApp({ doc, auth, api, dashboard, students }) {
   const $ = (id) => doc.getElementById(id);
   let busy = false;           // login em andamento
   let signedIn = false;       // já há usuário do Firebase (evita carregar a sessão duas vezes)
@@ -22,6 +22,17 @@ export function createApp({ doc, auth, api, dashboard }) {
 
   function show(view) {
     VIEWS.forEach((v) => { $(v).hidden = v !== view; });
+  }
+
+  function showTab(view) {
+    const onStudents = view === 'students';
+    $('view-dashboard').hidden = onStudents;
+    $('view-students').hidden = !onStudents;
+    [['dashboard', 'tab-dashboard'], ['students', 'tab-students']].forEach(([name, id]) => {
+      if (name === view) $(id).setAttribute('aria-current', 'page');
+      else $(id).removeAttribute('aria-current');
+    });
+    if (onStudents) students.activate();
   }
 
   function showLogin(message) {
@@ -45,6 +56,8 @@ export function createApp({ doc, auth, api, dashboard }) {
     generation += 1;
     signedIn = false;
     dashboard.reset();
+    students.reset();
+    showTab('dashboard');
     $('user-line').textContent = '';
     const message = pendingMessage;
     pendingMessage = '';
@@ -140,16 +153,23 @@ export function createApp({ doc, auth, api, dashboard }) {
     toLogin();
   }
 
+  /** Chamado pelas telas de Alunos quando o servidor recusa a sessão. */
+  function onAuthFailure(code) {
+    if (signedIn && AUTH_FAILURES[code]) endSession(AUTH_FAILURES[code]);
+  }
+
   function start() {
     show('view-boot');
     ACTIVITY_EVENTS.forEach((name) => doc.addEventListener(name, () => auth.touch()));
     doc.addEventListener('visibilitychange', () => { if (!doc.hidden) auth.checkIdle(); });
     $('login-form').addEventListener('submit', onLoginSubmit);
+    $('tab-dashboard').addEventListener('click', () => showTab('dashboard'));
+    $('tab-students').addEventListener('click', () => showTab('students'));
     $('logout').addEventListener('click', onLogout);
     $('session-logout').addEventListener('click', onLogout);
     $('session-retry').addEventListener('click', () => { loadSession(); });
     auth.start(handleUser);
   }
 
-  return { start, onIdle, onSignOutFailed };
+  return { start, onIdle, onSignOutFailed, onAuthFailure };
 }

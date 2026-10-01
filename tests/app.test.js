@@ -28,7 +28,8 @@ function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = nul
   };
   const api = { call: async (acao) => { events.push(['api', acao]); return next(queue.sessao); } };
   const dash = { load: async () => { events.push(['dashboard']); return next(queue.dashboard); }, reset: () => events.push(['reset']) };
-  const app = createApp({ doc: dom.doc, auth, api, dashboard: dash });
+  const students = { activate: () => events.push(['students.activate']), reset: () => events.push(['students.reset']) };
+  const app = createApp({ doc: dom.doc, auth, api, dashboard: dash, students });
   return { dom, events, app, auth, emit: (u) => onUser(u), count: (name) => events.filter((e) => e[0] === name).length };
 }
 
@@ -203,7 +204,7 @@ test('resposta atrasada de uma sessão que já terminou não reabre o sistema', 
     checkIdle: async () => false,
   };
   const api = { call: async () => { await slow; return SESSAO; } };
-  const app = createApp({ doc: dom.doc, auth, api, dashboard: { load: async () => ({ ok: true }), reset() {} } });
+  const app = createApp({ doc: dom.doc, auth, api, dashboard: { load: async () => ({ ok: true }), reset() {} }, students: { activate() {}, reset() {} } });
   app.start();
   onUser({ email: 'a@b.com' });
   onUser(null);
@@ -286,4 +287,49 @@ test('saída por inatividade que falhou: o login aparece com o aviso de seguran�
   app.onSignOutFailed();
   assert.deepEqual(dom.visible(VIEWS), ['view-login']);
   assert.match(dom.$('login-error').textContent, /encerrar a sessão com segurança/i);
+});
+
+test('abas: Alunos mostra a seção e carrega a lista uma vez por chamada; Início volta ao painel', async () => {
+  const { dom, app, emit, count } = setup();
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  assert.equal(dom.$('view-students').hidden, true);
+  dom.click('tab-students');
+  assert.equal(dom.$('view-students').hidden, false);
+  assert.equal(dom.$('view-dashboard').hidden, true);
+  assert.equal(dom.$('tab-students').getAttribute('aria-current'), 'page');
+  assert.equal(dom.$('tab-dashboard').getAttribute('aria-current'), null);
+  assert.equal(count('students.activate'), 1);
+  dom.click('tab-dashboard');
+  assert.equal(dom.$('view-dashboard').hidden, false);
+  assert.equal(dom.$('view-students').hidden, true);
+  assert.equal(dom.$('tab-dashboard').getAttribute('aria-current'), 'page');
+});
+
+test('voltar ao login zera os Alunos e volta à aba Início (nada do usuário anterior)', async () => {
+  const { dom, app, emit, count } = setup();
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  dom.click('tab-students');
+  dom.click('logout');
+  await flush();
+  assert.ok(count('students.reset') >= 1);
+  assert.equal(dom.$('view-students').hidden, true);
+  assert.equal(dom.$('view-dashboard').hidden, false);
+  assert.equal(dom.$('tab-dashboard').getAttribute('aria-current'), 'page');
+});
+
+test('onAuthFailure dos Alunos encerra a sessão com a mensagem certa; sem sessão não faz nada', async () => {
+  const { dom, app, emit, count } = setup();
+  app.start();
+  app.onAuthFailure('NAO_AUTENTICADO'); // sem sessão: ignorado
+  assert.equal(count('logout'), 0);
+  emit({ email: 'a@b.com' });
+  await flush();
+  app.onAuthFailure('ACESSO_NEGADO');
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.match(dom.$('login-error').textContent, /não tem acesso/i);
 });

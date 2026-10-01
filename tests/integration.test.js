@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createApi } from '../js/api.js';
 import { createAuth } from '../js/auth.js';
 import { createDashboard } from '../js/dashboard.js';
+import { createStudents } from '../js/students.js';
+import { createStudentForm } from '../js/student-form.js';
 import { createApp } from '../js/app.js';
 import { createDom, flush } from './helpers/dom-env.js';
 
@@ -49,8 +51,9 @@ function build({ server, existingUser = null, tokens = ['tok-1'] } = {}) {
     },
   });
   const dashboard = createDashboard({ doc: dom.doc, api });
-  app = createApp({ doc: dom.doc, auth, api, dashboard });
-  return { dom, requests, tokenCalls, firebase, app, advance: (ms) => { now += ms; }, tick: () => tick && tick() };
+  const students = createStudents({ doc: dom.doc, api, createForm: createStudentForm, onAuthFailure: (code) => app.onAuthFailure(code) });
+  app = createApp({ doc: dom.doc, auth, api, dashboard, students });
+  return { dom, requests, tokenCalls, firebase, app, students, advance: (ms) => { now += ms; }, tick: () => tick && tick() };
 }
 
 const okServer = (body) => envelope(body.acao === 'sessao' ? { usuario: { nome: 'Ana Ficticia', perfil: 'Gestor' } } : DASH);
@@ -145,4 +148,47 @@ test('troca de usuário com painel pendente: a resposta atrasada do usuário ant
   await flush();
   assert.equal(dom.$('total').textContent, '7');
   assert.notEqual(dom.$('school').textContent, 'Escola do usuário A');
+});
+
+test('integração: A abre Alunos e digita CPF; sai; B entra e não vê nada de A, nem a lista tardia', async () => {
+  let who = 'A';
+  let releaseListaA;
+  const gateA = new Promise((resolve) => { releaseListaA = resolve; });
+  const perm = { criar: true, editarSensivel: true, confirmarDuplicidade: true };
+  const opcoes = { statusCriacao: ['Ativo'], faixas: { adulto: ['Branca'], infantil: ['Branca'] } };
+  const lista = (nome) => ({
+    itens: [{ student_id: 'ALU-1', nome_completo: nome, nome_social: '', status: 'Ativo', faixa: 'Branca', idade: 30 }],
+    total: 1, totalGeral: 1, porStatus: [], statusDisponiveis: ['Ativo'], permissoes: perm, opcoes,
+  });
+  const server = async (body) => {
+    if (body.acao === 'sessao') return envelope({ usuario: { nome: who === 'A' ? 'Ana Ficticia' : 'Bruno Ficticio', perfil: 'Gestor' } });
+    if (body.acao === 'alunos.listar') { await gateA; return envelope(lista('Aluno do A Ficticio')); }
+    return envelope(DASH);
+  };
+  const { dom, app } = build({ server, tokens: ['tok-a', 'tok-b'] });
+  const login = async (email) => {
+    dom.$('login-email').value = email;
+    dom.$('login-password').value = 'segredo';
+    dom.submit('login-form');
+    await flush();
+    await flush();
+  };
+  app.start();
+  await flush();
+  await login('ana@exemplo.com');
+  dom.click('tab-students'); // a lista de A fica pendente
+  await flush();
+  dom.$('f-cpf').value = '111.444.777-35'; // valor digitado por A no formulário
+  dom.click('logout');
+  await flush();
+  who = 'B';
+  await login('bruno@exemplo.com');
+  releaseListaA(); // a resposta de A chega depois da troca
+  await flush();
+  await flush();
+  assert.equal(dom.$('students-list').children.length, 0);
+  assert.equal(dom.$('f-cpf').value, '');
+  assert.equal(dom.$('user-line').textContent, 'Bruno Ficticio · Gestor');
+  assert.equal(dom.$('view-students').hidden, true);
+  assert.deepEqual(dom.visible(VIEWS), ['view-app']);
 });
