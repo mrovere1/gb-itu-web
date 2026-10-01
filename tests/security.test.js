@@ -78,3 +78,15 @@ test('domínio e ícone: CNAME correto e favicon existente', () => {
 test('carimbo de versão dos arquivos está atualizado', () => {
   execFileSync('node', ['scripts/stamp-version.js', '--check'], { cwd: root, stdio: 'pipe' });
 });
+
+test('firebase.js é o único arquivo que importa o SDK e aponta para a versão fixada', () => {
+  const version = read('vendor/firebase/VERSION').trim();
+  const imports = jsFiles.filter((f) => /vendor\/firebase/.test(read('js/' + f)));
+  assert.deepEqual(imports, ['firebase.js']);
+  const src = read('js/firebase.js');
+  assert.ok(src.includes(`../vendor/firebase/${version}/firebase-app.js`));
+  assert.ok(src.includes(`../vendor/firebase/${version}/firebase-auth.js`));
+  assert.ok(/initializeAuth\(/.test(src) && !/getAuth\(/.test(src), 'deve usar initializeAuth, sem getAuth');
+  assert.ok(/browserSessionPersistence/.test(src));
+  assert.ok(!/popupRedirectResolver|signInWithPopup|signInWithRedirect|GoogleAuthProvider/.test(src), 'sem login por popup');
+});
