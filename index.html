@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=7990cd7fbd" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=7990cd7fbd">
-    <script src="js/framebust.js?v=7990cd7fbd"></script>
+    <link rel="icon" href="img/icone.png?v=a1adb3c20b" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=a1adb3c20b">
+    <script src="js/framebust.js?v=a1adb3c20b"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=7990cd7fbd" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=a1adb3c20b" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -51,7 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
-        <img class="brand" src="img/icone.png?v=7990cd7fbd" alt="" width="256" height="191">
+        <img class="brand" src="img/icone.png?v=a1adb3c20b" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -96,6 +96,10 @@
           </div>
 
           <div id="dash-admin" hidden>
+            <div id="dash-avisos-box" class="card notice" hidden>
+              <h3>Atenção aos dados</h3>
+              <ul id="dash-avisos" class="warnings-list"></ul>
+            </div>
             <section aria-labelledby="kpi-main-title">
               <h3 id="kpi-main-title" class="sr-only">Indicadores prioritários</h3>
               <div id="kpi-main" class="kpi-grid kpi-grid-main"></div>
@@ -123,6 +127,7 @@
                 <h3 id="bday-title">Aniversariantes do mês</h3>
                 <ul id="bday-list" class="bday-list"></ul>
                 <p id="bday-empty" class="muted" hidden>Não há aniversariantes neste mês.</p>
+                <p id="bday-pending" class="muted" hidden>Aguardando o cadastro das datas de nascimento.</p>
               </aside>
             </div>
           </div>
@@ -299,6 +304,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=7990cd7fbd"></script>
+    <script type="module" src="js/main.js?v=a1adb3c20b"></script>
   </body>
 </html>

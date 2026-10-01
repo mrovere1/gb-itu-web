@@ -63,3 +63,23 @@ Cada indicador: `{ id, titulo, estado, formato, valor, secundario, mensagem, aju
 `estado` é `ok`, `aguardando` (falta dado lançado) ou `nao_configurado` (falta módulo). Fora de `ok`, `valor` é sempre `null`
 e `mensagem` explica: o portal nunca mostra zero para indicador sem dado. Aniversariantes trazem só `dia`, `mes` e a idade que se completa
 (nunca o ano de nascimento). Não há cache no servidor: a resposta contém nomes e é recalculada a cada chamada (uma leitura em lote de `Alunos`).
+
+### Indicadores financeiros (D2)
+
+Lidos de `Cobrancas`, `Pagamentos` e `Matriculas` (valores numéricos, em lote, somente leitura). Sem nenhuma cobrança real, os cartões financeiros ficam
+`aguardando` ("Aguardando importação das mensalidades"); em uma competência sem lançamento nenhum, "Sem lançamentos nesta competência" (zero só aparece
+quando há lançamento).
+
+| Indicador | Regra |
+|---|---|
+| Receita prevista | Cobranças da competência com status `Paga`, `Pendente` ou `Coberta por pacote`. Fora: `Isenta`, `Suspensa`, `Cancelada`, aluno inexistente e `tipo_isencao = Assistente`. O secundário informa quanto é de pacote. |
+| Receita recebida | Pagamentos `Confirmado` pela **data do pagamento**. Pacote entra de uma vez no mês da venda; estornos e pagamentos sem data ficam fora (sem data gera aviso). Secundário: quantidade e variação sobre o mês anterior. |
+| Inadimplentes | Alunos com cobrança `Pendente` da competência, vencimento anterior a hoje, fora de pacote válido (`pago_ate` ≥ competência) e sem isenção. Cobrança sem vencimento não conta (gera aviso). |
+| Contas a vencer | Cobranças `Pendente` que vencem de hoje até 7 dias (constante `DIAS_A_VENCER`), de qualquer competência. |
+| Ticket médio | Receita recebida ÷ alunos distintos que pagaram na competência. Sem pagamentos: mensagem, nunca divisão por zero. |
+| Alunos pagantes | Alunos `Ativo` com `valor_contratado` > 0 e sem `tipo_isencao`. |
+| Gráfico | Últimos 6 meses até a competência: prevista e recebida. |
+
+Campos novos na resposta completa: `avisos[]` (problemas de qualidade dos dados), `aniversariantesEstado` (`ok` ou `sem_datas`),
+`graficos.receitaPrevistaRecebida.meses[]` e, em `detalhes`, as listas `inadimplentes`, `contasAVencer` (`info`: competência, vencimento, valor e, só em
+inadimplentes, telefone) e `receitaRecebida` (data, valor, forma). Valores em reais como número, datas `AAAA-MM-DD`; o portal formata em pt-BR.

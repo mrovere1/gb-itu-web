@@ -5,6 +5,7 @@ const NUMBER = new Intl.NumberFormat('pt-BR');
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const PERCENT = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const SORTS = { az: 1, za: -1 };
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -13,6 +14,24 @@ export function formatIndicator(i) {
   if (i.formato === 'moeda') return MONEY.format(i.valor);
   if (i.formato === 'percentual') return PERCENT.format(i.valor) + '%';
   return NUMBER.format(i.valor);
+}
+
+const dateBR = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.slice(8) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '');
+const compBR = (c) => (/^\d{4}-\d{2}$/.test(c) ? c.slice(5) + '/' + c.slice(0, 4) : '');
+const monthLabel = (c) => (/^\d{4}-\d{2}$/.test(c) ? MONTHS[parseInt(c.slice(5), 10) - 1] + '/' + c.slice(2, 4) : String(c));
+
+/** Texto de apoio de uma linha da gaveta: matrícula, competência, vencimento, data, valor, forma e telefone (o que existir). */
+export function metaOf(item) {
+  const i = item.info || item;
+  const parts = [];
+  if (item.data_matricula) parts.push('Matrícula em ' + item.data_matricula);
+  if (i.competencia) parts.push('Competência ' + compBR(i.competencia));
+  if (i.vencimento) parts.push('vence ' + dateBR(i.vencimento));
+  if (i.data) parts.push(dateBR(i.data));
+  if (typeof i.valor === 'number') parts.push(MONEY.format(i.valor));
+  if (i.forma) parts.push(i.forma);
+  if (i.telefone) parts.push(i.telefone);
+  return parts.join(' · ');
 }
 
 function initials(name) {
@@ -62,13 +81,14 @@ export function createAdminDashboard({ doc, openStudent }) {
     if (rows.length === 0) {
       $('drawer-empty').textContent = drawer.items.length === 0 ? 'Nenhum aluno neste indicador.' : 'Nenhum aluno encontrado para esta busca.';
     }
-    $('drawer-count').textContent = rows.length === drawer.items.length ? rows.length + ' alunos' : rows.length + ' de ' + drawer.items.length + ' alunos';
+    const unit = drawer.items.some((a) => a.info || typeof a.valor === 'number') ? ' registros' : ' alunos';
+    $('drawer-count').textContent = rows.length === drawer.items.length ? rows.length + unit : rows.length + ' de ' + drawer.items.length + unit;
     rows.forEach((a) => {
       const li = doc.createElement('li');
       const btn = el('button', 'student-row');
       btn.type = 'button';
       btn.appendChild(el('span', 'student-name', a.nome));
-      btn.appendChild(el('span', 'muted', a.data_matricula ? 'Matrícula em ' + a.data_matricula : 'Abrir cadastro'));
+      btn.appendChild(el('span', 'muted', metaOf(a) || 'Abrir cadastro'));
       btn.addEventListener('click', () => { closeDrawer(false); openStudent(a.student_id); });
       li.appendChild(btn);
       list.appendChild(li);
@@ -155,11 +175,46 @@ export function createAdminDashboard({ doc, openStudent }) {
     box.appendChild(list);
   }
 
+  function renderRevenueChart(chart) {
+    const box = $('chart-revenue');
+    box.textContent = '';
+    const meses = chart && Array.isArray(chart.meses) ? chart.meses : [];
+    if (!chart || chart.estado !== 'ok' || meses.length === 0) { emptyChart(box, (chart && chart.mensagem) || 'Ainda sem dados.'); return; }
+    const max = Math.max(1, ...meses.map((m) => Math.max(m.prevista, m.recebida)));
+    const legend = el('p', 'muted', 'Cinza: previsto · Vermelho: recebido');
+    box.appendChild(legend);
+    const list = el('ul', 'bars bars-pair');
+    meses.forEach((m) => {
+      const li = doc.createElement('li');
+      li.appendChild(el('span', 'bar-label', monthLabel(m.competencia)));
+      const pair = el('span', 'bar-pair');
+      [['previsto', 'bar bar-prev', m.prevista], ['recebido', 'bar bar-rec', m.recebida]].forEach(([name, cls, value]) => {
+        const bar = el('progress', cls);
+        bar.max = max;
+        bar.value = value;
+        bar.setAttribute('aria-label', monthLabel(m.competencia) + ', ' + name + ': ' + MONEY.format(value));
+        pair.appendChild(bar);
+      });
+      li.appendChild(pair);
+      li.appendChild(el('span', 'bar-values', MONEY.format(m.prevista) + ' / ' + MONEY.format(m.recebida)));
+      list.appendChild(li);
+    });
+    box.appendChild(list);
+  }
+
+  function renderAvisos(avisos) {
+    const list = $('dash-avisos');
+    list.textContent = '';
+    (Array.isArray(avisos) ? avisos : []).forEach((text) => list.appendChild(el('li', '', text)));
+    $('dash-avisos-box').hidden = list.children.length === 0;
+  }
+
   // ---------- Aniversariantes ----------
-  function renderBirthdays(list) {
+  function renderBirthdays(list, pending) {
     const ul = $('bday-list');
     ul.textContent = '';
-    $('bday-empty').hidden = list.length > 0;
+    $('bday-empty').hidden = list.length > 0 || pending;
+    $('bday-pending').hidden = !(list.length === 0 && pending);
     list.forEach((a) => {
       const li = doc.createElement('li');
       const btn = el('button', 'bday-row');
@@ -183,9 +238,10 @@ export function createAdminDashboard({ doc, openStudent }) {
     closeDrawer(false);
     renderKpis(data);
     renderStatusChart(data.graficos.situacaoAlunos);
-    emptyChart($('chart-revenue'), (data.graficos.receitaPrevistaRecebida || {}).mensagem || 'Ainda sem dados.');
+    renderRevenueChart(data.graficos.receitaPrevistaRecebida);
+    renderAvisos(data.avisos);
     emptyChart($('chart-occupancy'), (data.graficos.ocupacaoTurmas || {}).mensagem || 'Ainda sem dados.');
-    renderBirthdays(data.aniversariantes);
+    renderBirthdays(data.aniversariantes, data.aniversariantesEstado === 'sem_datas');
     $('dash-admin').hidden = false;
   }
 
@@ -194,6 +250,9 @@ export function createAdminDashboard({ doc, openStudent }) {
     closeDrawer(false);
     ['kpi-main', 'kpi-more', 'chart-status', 'chart-revenue', 'chart-occupancy', 'bday-list', 'drawer-list'].forEach((id) => { $(id).textContent = ''; });
     $('bday-empty').hidden = true;
+    $('bday-pending').hidden = true;
+    $('dash-avisos').textContent = '';
+    $('dash-avisos-box').hidden = true;
     $('drawer-count').textContent = '';
     $('drawer-empty').textContent = '';
     $('dash-admin').hidden = true;

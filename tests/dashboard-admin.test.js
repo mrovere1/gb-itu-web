@@ -302,3 +302,112 @@ test('students.open: carrega a lista (perfil e opções) e depois o detalhe do a
   students.activate(); // já carregada: não repete a listagem
   assert.equal(fake.byAcao('alunos.listar').length, 1);
 });
+
+// ---------- D2: financeiro ----------
+import { metaOf } from '../js/dashboard-admin.js';
+
+const FIN = {
+  ...ADMIN,
+  avisos: ['1 pagamento sem data não entra na receita recebida.'],
+  aniversariantesEstado: 'ok',
+  indicadores: {
+    principais: [
+      ind('inadimplentes', 'Inadimplentes', { estado: 'ok', valor: 2, secundario: 'R$ 410,00 em aberto', mensagem: null, detalhe: 'inadimplentes' }),
+      ind('receitaRecebida', 'Receita recebida', { estado: 'ok', formato: 'moeda', valor: 1234.5, secundario: '2 pagamentos', mensagem: null, detalhe: 'receitaRecebida' }),
+    ],
+    complementares: [ind('ticketMedio', 'Ticket médio', { estado: 'ok', formato: 'moeda', valor: 400, secundario: '2 alunos pagaram', mensagem: null })],
+  },
+  graficos: {
+    ...ADMIN.graficos,
+    receitaPrevistaRecebida: { estado: 'ok', meses: [
+      { competencia: '2026-08', prevista: 200, recebida: 100 },
+      { competencia: '2026-09', prevista: 600, recebida: 800 },
+    ] },
+  },
+  detalhes: {
+    ...ADMIN.detalhes,
+    inadimplentes: [{ student_id: 'ALU-2', nome: 'Ana Ficticia', info: { competencia: '2026-09', vencimento: '2026-09-10', valor: 250, telefone: '(11) 90000-0000' } }],
+    receitaRecebida: [{ student_id: 'ALU-1', nome: 'Bruno Ficticio', data: '2026-09-10', valor: 200, forma: 'PIX' }],
+  },
+};
+
+test('metaOf: compõe o texto de apoio com o que existir (matrícula, competência, vencimento, data, valor, forma, telefone)', () => {
+  assert.equal(metaOf({ data_matricula: '10/09/2026' }), 'Matrícula em 10/09/2026');
+  const flat = (t) => t.replace(/\s/g, ' ');
+  assert.equal(flat(metaOf({ info: { competencia: '2026-09', vencimento: '2026-09-10', valor: 250, telefone: '(11) 90000-0000' } })),
+    'Competência 09/2026 · vence 10/09/2026 · R$ 250,00 · (11) 90000-0000');
+  assert.equal(flat(metaOf({ data: '2026-09-10', valor: 200, forma: 'PIX' })), '10/09/2026 · R$ 200,00 · PIX');
+  assert.equal(metaOf({ student_id: 'A', nome: 'X' }), '');
+});
+
+test('cartões financeiros mostram moeda pt-BR e abrem a lista de inadimplentes com competência, vencimento, valor e telefone', async () => {
+  const { dom, dashboard, card } = setup(() => okEnv(FIN));
+  await dashboard.load();
+  assert.equal(card('kpi-main', 1).children[1].textContent.replace(/\s/g, ' '), 'R$ 1.234,50');
+  assert.equal(card('kpi-main', 1).children[2].textContent, '2 pagamentos');
+  card('kpi-main', 0).listeners.click();
+  assert.equal(dom.$('drawer-title').textContent, 'Inadimplentes');
+  const meta = dom.$('drawer-list').children[0].children[0].children[1].textContent.replace(/\s/g, ' ');
+  assert.equal(meta, 'Competência 09/2026 · vence 10/09/2026 · R$ 250,00 · (11) 90000-0000');
+  assert.equal(dom.$('drawer-count').textContent, '1 registros');
+});
+
+test('lista de receita recebida: data, valor e forma; a contagem fala em registros', async () => {
+  const { dom, dashboard, card } = setup(() => okEnv(FIN));
+  await dashboard.load();
+  card('kpi-main', 1).listeners.click();
+  assert.equal(dom.$('drawer-list').children[0].children[0].children[1].textContent.replace(/\s/g, ' '), '10/09/2026 · R$ 200,00 · PIX');
+});
+
+test('gráfico de receita: uma linha por mês com barra prevista e barra recebida na mesma escala, com rótulos acessíveis', async () => {
+  const { dom, dashboard } = setup(() => okEnv(FIN));
+  await dashboard.load();
+  const box = dom.$('chart-revenue');
+  assert.equal(box.children[0].textContent, 'Cinza: previsto · Vermelho: recebido');
+  const rows = box.children[1].children;
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].children[0].textContent, 'ago/26');
+  const [prev, rec] = rows[1].children[1].children;
+  assert.deepEqual([prev.value, prev.max, rec.value, rec.max], [600, 800, 800, 800]);
+  assert.match(prev.getAttribute('aria-label').replace(/\s/g, ' '), /set\/26, previsto: R\$ 600,00/);
+  assert.match(rec.getAttribute('aria-label').replace(/\s/g, ' '), /set\/26, recebido: R\$ 800,00/);
+  assert.equal(rows[1].children[2].textContent.replace(/\s/g, ' '), 'R$ 600,00 / R$ 800,00');
+});
+
+test('avisos de qualidade aparecem num quadro e somem quando não há avisos', async () => {
+  const withAvisos = setup(() => okEnv(FIN));
+  await withAvisos.dashboard.load();
+  assert.equal(withAvisos.dom.$('dash-avisos-box').hidden, false);
+  assert.equal(withAvisos.dom.$('dash-avisos').children[0].textContent, FIN.avisos[0]);
+  const without = setup(() => okEnv({ ...FIN, avisos: [] }));
+  await without.dashboard.load();
+  assert.equal(without.dom.$('dash-avisos-box').hidden, true);
+});
+
+test('sem datas de nascimento: mensagem de espera em vez de "não há aniversariantes"', async () => {
+  const { dom, dashboard } = setup(() => okEnv({ ...FIN, aniversariantes: [], aniversariantesEstado: 'sem_datas' }));
+  await dashboard.load();
+  assert.equal(dom.$('bday-pending').hidden, false);
+  assert.equal(dom.$('bday-empty').hidden, true);
+  const ok = setup(() => okEnv({ ...FIN, aniversariantes: [], aniversariantesEstado: 'ok' }));
+  await ok.dashboard.load();
+  assert.equal(ok.dom.$('bday-pending').hidden, true);
+  assert.equal(ok.dom.$('bday-empty').hidden, false);
+});
+
+test('reset apaga avisos e gráfico financeiro do usuário anterior', async () => {
+  const { dom, dashboard } = setup(() => okEnv(FIN));
+  await dashboard.load();
+  dashboard.reset();
+  assert.equal(dom.$('dash-avisos').children.length, 0);
+  assert.equal(dom.$('dash-avisos-box').hidden, true);
+  assert.equal(dom.$('chart-revenue').children.length, 0);
+  assert.equal(dom.$('bday-pending').hidden, true);
+});
+
+test('texto financeiro do servidor com HTML aparece literalmente', async () => {
+  const evil = '<img src=x onerror=alert(1)>';
+  const { dom, dashboard } = setup(() => okEnv({ ...FIN, avisos: [evil] }));
+  await dashboard.load();
+  assert.equal(dom.$('dash-avisos').children[0].textContent, evil);
+});
