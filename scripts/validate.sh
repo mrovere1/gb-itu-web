@@ -14,6 +14,11 @@ node --test "tests/**/*.test.js"
 echo "==> Carimbo de versão"
 node scripts/stamp-version.js --check
 
+echo "==> Check-in online ausente da interface (CLAUDE.md §10)"
+if grep -rniE "qr ?code|check-?in" index.html js/*.js; then
+  fail "referência a check-in/QR na interface"
+fi
+
 echo "==> Segredos"
 if grep -rnE "gho_[A-Za-z0-9]{20,}|ya29\.[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|\"refresh_token\"|\"client_secret\"|\"private_key\"" \
    --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.superpowers --exclude-dir=vendor --exclude=validate.sh .; then

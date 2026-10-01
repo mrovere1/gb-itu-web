@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="favicon.svg?v=9317b42957" type="image/svg+xml">
-    <link rel="stylesheet" href="css/app.css?v=9317b42957">
-    <script src="js/framebust.js?v=9317b42957"></script>
+    <link rel="icon" href="favicon.svg?v=677bde899c" type="image/svg+xml">
+    <link rel="stylesheet" href="css/app.css?v=677bde899c">
+    <script src="js/framebust.js?v=677bde899c"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -56,7 +56,13 @@
         <button id="logout" type="button" class="link">Sair</button>
       </header>
 
+      <nav class="tabs" aria-label="Seções">
+        <button id="tab-dashboard" type="button" class="tab" aria-current="page">Início</button>
+        <button id="tab-students" type="button" class="tab">Alunos</button>
+      </nav>
+
       <main id="main" tabindex="-1">
+        <div id="view-dashboard">
         <section id="dash-loading" class="card" role="status" aria-live="polite">
           <p>Carregando…</p>
         </section>
@@ -83,9 +89,150 @@
           <p class="muted" id="updated"></p>
           <button id="dash-refresh" type="button">Atualizar</button>
         </section>
+        </div>
+
+      <div id="view-students" hidden>
+        <form id="students-filter" class="card filters" role="search">
+          <div class="field">
+            <label for="students-q">Buscar por nome</label>
+            <input id="students-q" type="search" maxlength="60" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="students-status">Status</label>
+            <select id="students-status"><option value="">Todos</option></select>
+          </div>
+          <button type="submit">Buscar</button>
+        </form>
+
+        <div class="toolbar">
+          <button id="students-new" type="button" hidden>Novo aluno</button>
+        </div>
+
+        <section id="students-loading" class="card" role="status" aria-live="polite" hidden>
+          <p>Carregando alunos…</p>
+        </section>
+        <section id="students-error" class="card card-error" role="alert" hidden>
+          <p id="students-error-msg"></p>
+          <p id="students-error-ref" class="muted"></p>
+          <button id="students-retry" type="button">Tentar novamente</button>
+        </section>
+        <section id="students-empty" class="card" hidden>
+          <p class="muted">Nenhum aluno encontrado para esta busca.</p>
+        </section>
+
+        <div id="students-ready" hidden>
+          <p class="muted" id="students-count" role="status" aria-live="polite"></p>
+          <ul id="students-list" class="student-list"></ul>
+        </div>
+
+        <section id="student-form-section" class="card" hidden>
+          <button id="form-cancel" type="button" class="secondary">← Cancelar</button>
+          <h2 id="form-title" tabindex="-1">Novo aluno</h2>
+          <p class="muted">Campos com * são obrigatórios.</p>
+          <form id="student-form" novalidate>
+            <div id="form-summary" class="form-error" role="alert" tabindex="-1" hidden></div>
+            <div class="grid">
+              <div class="field wide">
+                <label for="f-nome_completo">Nome completo *</label>
+                <input id="f-nome_completo" maxlength="120" autocomplete="off" aria-describedby="e-nome_completo">
+                <p class="error" id="e-nome_completo" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-nome_social">Nome social</label>
+                <input id="f-nome_social" maxlength="120" autocomplete="off" aria-describedby="e-nome_social">
+                <p class="error" id="e-nome_social" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-data_nascimento">Data de nascimento *</label>
+                <input id="f-data_nascimento" type="date" aria-describedby="e-data_nascimento">
+                <p class="error" id="e-data_nascimento" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-data_matricula">Data de matrícula</label>
+                <input id="f-data_matricula" type="date" aria-describedby="e-data_matricula">
+                <p class="error" id="e-data_matricula" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-status">Status *</label>
+                <select id="f-status" aria-describedby="e-status"></select>
+                <p class="error" id="e-status" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-faixa">Faixa *</label>
+                <select id="f-faixa" aria-describedby="e-faixa"></select>
+                <p class="error" id="e-faixa" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-graus">Graus *</label>
+                <select id="f-graus" aria-describedby="e-graus">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+                  <option value="3">3</option><option value="4">4</option>
+                </select>
+                <p class="error" id="e-graus" hidden></p>
+              </div>
+              <div class="field" id="box-cpf">
+                <label for="f-cpf">CPF</label>
+                <input id="f-cpf" inputmode="numeric" maxlength="20" autocomplete="off" aria-describedby="e-cpf">
+                <p class="error" id="e-cpf" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-telefone">Telefone</label>
+                <input id="f-telefone" type="tel" maxlength="30" autocomplete="off" aria-describedby="e-telefone">
+                <p class="error" id="e-telefone" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-email">E-mail</label>
+                <input id="f-email" maxlength="120" autocomplete="off" inputmode="email" aria-describedby="e-email">
+                <p class="error" id="e-email" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-contato_emergencia">Contato de emergência</label>
+                <input id="f-contato_emergencia" maxlength="120" autocomplete="off" aria-describedby="e-contato_emergencia hint-emergencia">
+                <p class="error" id="e-contato_emergencia" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-telefone_emergencia">Telefone de emergência</label>
+                <input id="f-telefone_emergencia" type="tel" maxlength="30" autocomplete="off" aria-describedby="e-telefone_emergencia hint-emergencia">
+                <p class="error" id="e-telefone_emergencia" hidden></p>
+              </div>
+              <p class="muted wide" id="hint-emergencia">Contato e telefone de emergência são obrigatórios para menores de 18 anos.</p>
+              <div class="field wide" id="box-restricoes_medicas">
+                <label for="f-restricoes_medicas">Restrições médicas</label>
+                <textarea id="f-restricoes_medicas" rows="3" maxlength="500" aria-describedby="e-restricoes_medicas"></textarea>
+                <p class="error" id="e-restricoes_medicas" hidden></p>
+              </div>
+              <div class="field wide">
+                <label for="f-observacoes">Observações</label>
+                <textarea id="f-observacoes" rows="3" maxlength="500" aria-describedby="e-observacoes"></textarea>
+                <p class="error" id="e-observacoes" hidden></p>
+              </div>
+              <div class="field wide" id="confirm-box" hidden>
+                <label class="check">
+                  <input id="f-confirmarDuplicidade" type="checkbox" aria-describedby="e-confirmarDuplicidade">
+                  Cadastrar mesmo assim (já existe aluno com o mesmo nome e nascimento)
+                </label>
+              </div>
+              <p class="error wide" id="e-confirmarDuplicidade" hidden></p>
+            </div>
+            <div class="actions">
+              <button id="form-submit" type="submit">Cadastrar aluno</button>
+              <button id="form-reload" type="button" class="secondary" hidden>Recarregar cadastro</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="student-detail" class="card" hidden>
+          <div class="toolbar-row">
+            <button id="detail-back" type="button" class="secondary">← Voltar à lista</button>
+            <button id="detail-edit" type="button" hidden>Editar</button>
+          </div>
+          <h2 id="detail-name" tabindex="-1"></h2>
+          <p id="detail-notice" class="success" role="status" hidden></p>
+          <ul id="detail-warnings" class="warnings"></ul>
+          <dl id="detail-fields" class="fields"></dl>
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=9317b42957"></script>
+    <script type="module" src="js/main.js?v=677bde899c"></script>
   </body>
 </html>
