@@ -9,12 +9,14 @@ import { join } from 'node:path';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const STAMPED = ['index.html', 'js/main.js'];
 const jsFiles = readdirSync(join(root, 'js')).filter((f) => f.endsWith('.js')).sort().map((f) => 'js/' + f);
-const SOURCES = ['index.html', 'favicon.svg', 'css/app.css', ...jsFiles];
+const imgFiles = readdirSync(join(root, 'img')).sort().map((f) => 'img/' + f);
+const SOURCES = ['index.html', 'css/app.css', ...jsFiles];
 const TOKEN = /\?v=[A-Za-z0-9]+/g;
 
 const read = (p) => readFileSync(join(root, p), 'utf8');
 const hash = createHash('sha256');
 SOURCES.forEach((p) => hash.update(p + '\0' + read(p).replace(TOKEN, '?v=@') + '\0'));
+imgFiles.forEach((p) => { hash.update(p + '\0'); hash.update(readFileSync(join(root, p))); hash.update('\0'); }); // binários: bytes puros
 const version = hash.digest('hex').slice(0, 10);
 
 const check = process.argv.includes('--check');

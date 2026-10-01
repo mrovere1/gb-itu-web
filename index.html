@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="favicon.svg?v=40fce1a7a1" type="image/svg+xml">
-    <link rel="stylesheet" href="css/app.css?v=40fce1a7a1">
-    <script src="js/framebust.js?v=40fce1a7a1"></script>
+    <link rel="icon" href="img/icone.png?v=e08bce1c73" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=e08bce1c73">
+    <script src="js/framebust.js?v=e08bce1c73"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,8 +16,9 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <h1>Gracie Barra Itu</h1>
-        <p class="muted">Sistema interno. Entre com seu e-mail e senha.</p>
+        <img class="logo" src="img/logo.jpg?v=e08bce1c73" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <h1>Sistema interno</h1>
+        <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
           <div class="field">
             <label for="login-email">E-mail</label>
@@ -50,6 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
+        <img class="brand" src="img/icone.png?v=e08bce1c73" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -233,6 +235,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=40fce1a7a1"></script>
+    <script type="module" src="js/main.js?v=e08bce1c73"></script>
   </body>
 </html>

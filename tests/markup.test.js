@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
@@ -36,4 +36,18 @@ test('markup: Alunos começa escondido, Início visível e campos sensíveis ide
 
 test('markup: nada de check-in ou QR Code na interface (CLAUDE.md §10)', () => {
   assert.doesNotMatch(html, /qr ?code|check-?in/i);
+});
+
+test('identidade visual: logo com texto alternativo, ícone decorativo, aba com o ícone e arquivos leves', () => {
+  const imgs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
+  const logo = imgs.find((t) => /img\/logo\.jpg\?v=[a-z0-9]+/.test(t));
+  const icon = imgs.find((t) => /img\/icone\.png\?v=[a-z0-9]+/.test(t));
+  assert.ok(logo, 'logo no login');
+  assert.match(logo, /alt="[^"]{10,}"/);
+  assert.ok(icon, 'ícone no topo');
+  assert.match(icon, /alt=""/);
+  assert.match(html, /<link[^>]*rel="icon"[^>]*img\/icone\.png\?v=[a-z0-9]+/);
+  const size = (f) => statSync(new URL('../' + f, import.meta.url)).size;
+  assert.ok(size('img/logo.jpg') < 150 * 1024, 'logo pesado demais para o celular');
+  assert.ok(size('img/icone.png') < 50 * 1024, 'ícone pesado demais');
 });

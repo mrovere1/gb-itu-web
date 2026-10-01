@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -70,9 +70,9 @@ test('SDK do Firebase copiado: versão fixada, imports relativos e SHA-256 confe
   });
 });
 
-test('domínio e ícone: CNAME correto e favicon existente', () => {
+test('domínio e ícone: CNAME correto e ícone da aba existente', () => {
   assert.equal(read('CNAME').trim(), 'gb.mrovere.com');
-  assert.ok(read('favicon.svg').includes('<svg'));
+  assert.ok(existsSync(join(root, 'img/icone.png')));
 });
 
 test('carimbo de versão dos arquivos está atualizado', () => {
