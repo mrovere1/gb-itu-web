@@ -8,6 +8,15 @@ const auth = getAuth(initializeApp(firebaseConfig));
 const $ = (id) => document.getElementById(id);
 const log = (msg) => { $('log').textContent += msg + '\n'; };
 
+document.addEventListener('securitypolicyviolation', (e) => {
+  log(`CSP BLOQUEOU: ${e.blockedURI} (${e.violatedDirective})`);
+});
+
+$('hosts').addEventListener('click', () => {
+  const hosts = new Set(performance.getEntriesByType('resource').map((r) => new URL(r.name).host));
+  log('Servidores contatados: ' + [...hosts].sort().join(', '));
+});
+
 await setPersistence(auth, browserSessionPersistence);
 
 onAuthStateChanged(auth, (user) => {
