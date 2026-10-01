@@ -179,6 +179,52 @@ test('texto de aluno entra por textContent: marcação digitada vira texto, nunc
   assert.equal(btn.children.length, 2); // só os dois spans criados pelo código
 });
 
+test('cancelar com salvamento pendente: a resposta tardia não sobrescreve a navegação mais nova e a lista é recarregada', async () => {
+  const { dom, fake, fill } = await startEdit();
+  fill({ nome_social: 'Bru' });
+  dom.submit('student-form');
+  const save = fake.last();
+  dom.click('form-cancel'); // volta ao detalhe
+  dom.click('detail-back'); // pode ter gravado: a lista precisa ser recarregada
+  assert.equal(fake.byAcao('alunos.listar').length, 2);
+  await fake.resolve(okEnv(listData(GESTOR, [{ ...ANA, nome_completo: 'Segunda Ficticia' }])));
+  await fake.resolve(okEnv(detailData(bruno({ nome_social: 'Bru' }), EDICAO_GESTOR, 'V2')), save);
+  assert.deepEqual(dom.visible(PARTS), ['students-ready']);
+  assert.equal(dom.$('detail-notice').hidden, true);
+});
+
+test('recarregar o cadastro com salvamento pendente: a resposta tardia do salvamento é ignorada', async () => {
+  const { dom, fake, fill } = await startEdit();
+  fill({ nome_social: 'Bru' });
+  dom.submit('student-form');
+  const save = fake.last();
+  dom.click('form-reload'); // só aparece após erro de versão, mas o clique deve ser seguro a qualquer momento
+  await fake.resolve(okEnv(detailData(bruno({ nome_social: 'Novo' }), EDICAO_GESTOR, 'V9')));
+  await fake.resolve(okEnv(detailData(bruno({ nome_social: 'Velho' }), EDICAO_GESTOR, 'V2')), save);
+  assert.equal(dom.$('detail-name').textContent, 'Novo (Bruno Ficticio)');
+});
+
+test('reset e nova lista trocam as opções de status do filtro (nada do usuário anterior no DOM)', async () => {
+  const { dom, fake, students } = setup();
+  students.activate();
+  await fake.resolve(okEnv({ ...listData(GESTOR), statusDisponiveis: ['Ativo', 'Suspenso'] }));
+  assert.deepEqual(dom.$('students-status').options.map((o) => o.value), ['', 'Ativo', 'Suspenso']);
+  students.reset();
+  assert.deepEqual(dom.$('students-status').options.map((o) => o.value), ['']);
+  students.activate();
+  await fake.resolve(okEnv({ ...listData(GESTOR), statusDisponiveis: ['Ativo'] }));
+  assert.deepEqual(dom.$('students-status').options.map((o) => o.value), ['', 'Ativo']);
+});
+
+test('lista com opcoes incompletas vira erro recuperável (Novo aluno nunca fica quebrado)', async () => {
+  for (const opcoes of [{}, { statusCriacao: ['Ativo'] }, { statusCriacao: 'Ativo', faixas: { adulto: [], infantil: [] } }, { statusCriacao: [], faixas: { adulto: [] } }]) {
+    const { dom, fake, students } = setup();
+    students.activate();
+    await fake.resolve(okEnv({ ...listData(GESTOR), opcoes }));
+    assert.deepEqual(dom.visible(PARTS), ['students-error'], JSON.stringify(opcoes));
+  }
+});
+
 // ---------- portados do app antigo (mesmos nomes) ----------
 test('lista: botão Novo aluno só aparece para quem pode criar', async () => {
   assert.equal((await openList(GESTOR)).dom.$('students-new').hidden, false);

@@ -39,11 +39,15 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
           showError(GENERIC_ERROR);
         }
       },
-      onCancel(mode) {
+      onCancel(mode, info) {
+        if (info && info.savePending) dirty = true;
         if (mode === 'edit' && detail) showPart('student-detail');
         else backToList();
       },
-      onReload(id) { openDetail(id); },
+      onReload(id, info) {
+        if (info && info.savePending) dirty = true;
+        openDetail(id);
+      },
       onAuthFailure(code) { onAuthFailure(code); },
     },
   });
@@ -83,14 +87,18 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
   // ---------- Lista ----------
   const currentFilter = () => ({ busca: $('students-q').value, status: $('students-status').value });
 
-  function fillOptions(select, values) {
-    if (select.options.length > 1) return;
-    values.forEach((v) => {
+  // Refaz as opções do filtro a cada lista (e no reset): nada de uma sessão anterior sobra no DOM.
+  function setStatusOptions(values) {
+    const select = $('students-status');
+    const keep = select.value;
+    select.textContent = '';
+    ['', ...values].forEach((v) => {
       const o = doc.createElement('option');
       o.value = v;
-      o.textContent = v;
+      o.textContent = v === '' ? 'Todos' : v;
       select.appendChild(o);
     });
+    select.value = values.includes(keep) ? keep : '';
   }
 
   const displayName = (a) => (a.nome_social ? a.nome_social + ' (' + a.nome_completo + ')' : a.nome_completo);
@@ -99,11 +107,14 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
     const nextPerm = d.permissoes;
     const nextOpcoes = d.opcoes;
     const itens = d.itens;
-    if (!nextPerm || !nextOpcoes || !Array.isArray(itens)) throw new Error('lista malformada');
+    const faixas = nextOpcoes && nextOpcoes.faixas;
+    const opcoesOk = !!nextOpcoes && Array.isArray(nextOpcoes.statusCriacao) && !!faixas
+      && Array.isArray(faixas.adulto) && Array.isArray(faixas.infantil);
+    if (!nextPerm || !opcoesOk || !Array.isArray(itens) || !Array.isArray(d.statusDisponiveis)) throw new Error('lista malformada');
     perm = nextPerm;
     opcoes = nextOpcoes;
     $('students-new').hidden = !perm.criar;
-    fillOptions($('students-status'), d.statusDisponiveis);
+    setStatusOptions(d.statusDisponiveis);
     if (d.total === 0) { listPart = 'students-empty'; showPart(listPart); return; }
 
     $('students-count').textContent = d.total === d.totalGeral ? d.total + ' alunos' : d.total + ' de ' + d.totalGeral + ' alunos';
@@ -209,7 +220,7 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
     opcoes = null;
     detail = null;
     $('students-q').value = '';
-    $('students-status').value = '';
+    setStatusOptions([]);
     $('students-new').hidden = true;
     $('students-count').textContent = '';
     $('students-list').textContent = '';

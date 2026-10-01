@@ -143,6 +143,17 @@ test('cancelar e recarregar chamam os hooks (cancelar informa o modo)', () => {
   assert.deepEqual(b.events, [['cancel', 'edit'], ['reload', 'ALU-9']]);
 });
 
+test('cancelar com salvamento pendente: a resposta tardia não chama onSaved e o botão é liberado', async () => {
+  const { dom, fake, events, fill, startEdit } = setup();
+  startEdit();
+  fill({ nome_social: 'Bru' });
+  dom.submit('student-form');
+  dom.click('form-cancel');
+  assert.equal(dom.$('form-submit').disabled, false);
+  await fake.resolve(okEnv({ aluno: aluno() }));
+  assert.deepEqual(events, [['cancel', 'edit']]);
+});
+
 // ---------- portados do app antigo (mesmos nomes) ----------
 test('formulário: opções de status/faixa vindas do servidor e padrões do dia', () => {
   const { dom, startCreate } = setup();

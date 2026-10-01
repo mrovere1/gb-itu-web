@@ -1,12 +1,12 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=b30070865a';
-import { loadFirebase } from './firebase.js?v=b30070865a';
-import { createApi } from './api.js?v=b30070865a';
-import { createAuth } from './auth.js?v=b30070865a';
-import { createDashboard } from './dashboard.js?v=b30070865a';
-import { createStudentForm } from './student-form.js?v=b30070865a';
-import { createStudents } from './students.js?v=b30070865a';
-import { createApp } from './app.js?v=b30070865a';
+import { CONFIG } from './config.js?v=40fce1a7a1';
+import { loadFirebase } from './firebase.js?v=40fce1a7a1';
+import { createApi } from './api.js?v=40fce1a7a1';
+import { createAuth } from './auth.js?v=40fce1a7a1';
+import { createDashboard } from './dashboard.js?v=40fce1a7a1';
+import { createStudentForm } from './student-form.js?v=40fce1a7a1';
+import { createStudents } from './students.js?v=40fce1a7a1';
+import { createApp } from './app.js?v=40fce1a7a1';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;

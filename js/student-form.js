@@ -95,6 +95,7 @@ export function createStudentForm({ doc, api, hooks }) {
   }
 
   function prepare() {
+    generation += 1; // abrir o formulário de novo também descarta um salvamento ainda pendente
     const today = todayIso();
     $('f-data_nascimento').max = today;
     $('f-data_matricula').max = today;
@@ -289,8 +290,17 @@ export function createStudentForm({ doc, api, hooks }) {
   }
 
   $('student-form').addEventListener('submit', submit);
-  $('form-cancel').addEventListener('click', () => hooks.onCancel(mode));
-  $('form-reload').addEventListener('click', () => { if (detail) hooks.onReload(detail.aluno.student_id); });
+  // Cancelar ou recarregar durante um salvamento: a resposta tardia é descartada, mas o salvamento pode ter
+  // acontecido, então quem chama recebe savePending para recarregar a lista depois.
+  function leave() {
+    generation += 1;
+    const savePending = submitting;
+    endSubmit();
+    return { savePending };
+  }
+
+  $('form-cancel').addEventListener('click', () => hooks.onCancel(mode, leave()));
+  $('form-reload').addEventListener('click', () => { if (detail) hooks.onReload(detail.aluno.student_id, leave()); });
 
   return { openCreate, openEdit, reset };
 }
