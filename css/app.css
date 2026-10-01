@@ -1,3 +1,56 @@
-/* Estilos do portal. O conteúdo final entra no Task 4. */
+/* Estilos do portal. Visual neutro; a rodada de design vem depois. */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --text: #1f2933;
+  --muted: #52606d;
+  --accent: #0b6e4f;
+  --accent-text: #ffffff;
+  --border: #d5dae0;
+  --error-bg: #fdecea;
+  --error-text: #8a1c14;
+  --notice-bg: #fff6df;
+}
 html:not(.ok) body { display: none; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
 [hidden] { display: none !important; }
+.center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; flex-direction: column; gap: 16px; }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 8px; top: 8px; background: var(--surface); padding: 8px; z-index: 10; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #24303b; color: #fff; flex-wrap: wrap; }
+.topbar h1 { margin: 0; font-size: 1.15rem; flex: 1 1 auto; }
+.badge { background: #f0b429; color: #1f2933; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.user-line { font-size: .9rem; color: #cbd2d9; }
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+main:focus { outline: none; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.card h1, .card h2 { margin: 0 0 8px; font-size: 1.05rem; }
+.login { width: 100%; max-width: 420px; }
+.login h1 { font-size: 1.3rem; }
+.card-error { background: var(--error-bg); color: var(--error-text); border-color: var(--error-text); }
+.error-box { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-text); border-radius: 6px; padding: 10px 14px; margin: 0 0 12px; }
+.notice { background: var(--notice-bg); }
+.muted { color: var(--muted); font-size: .9rem; }
+.card-error .muted { color: var(--error-text); }
+.total { font-size: 1.6rem; font-weight: 700; margin: 0 0 8px; }
+.total .muted { font-size: .9rem; font-weight: 400; }
+.status-list { list-style: none; margin: 0; padding: 0; }
+.status-list li { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border); }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+label { font-size: .9rem; font-weight: 600; }
+input { font: inherit; padding: 10px; border: 1px solid #7b8794; border-radius: 6px; min-height: 44px; background: #fff; color: var(--text); width: 100%; }
+button { font: inherit; padding: 10px 16px; border: 0; border-radius: 6px; cursor: pointer; background: var(--accent); color: var(--accent-text); min-height: 44px; }
+button:hover { filter: brightness(1.1); }
+button:disabled { opacity: .6; cursor: progress; }
+button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+button.link { background: transparent; color: #fff; border: 1px solid #7b8794; padding: 6px 14px; min-height: 36px; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+:focus-visible { outline: 3px solid #1c64f2; outline-offset: 2px; }
+@media (max-width: 480px) { main { padding: 12px; } }

@@ -5,12 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="favicon.svg?v=58f8e4fd52" type="image/svg+xml">
-    <link rel="stylesheet" href="css/app.css?v=58f8e4fd52">
-    <script src="js/framebust.js?v=58f8e4fd52"></script>
+    <link rel="icon" href="favicon.svg?v=ae409220ed" type="image/svg+xml">
+    <link rel="stylesheet" href="css/app.css?v=ae409220ed">
+    <script src="js/framebust.js?v=ae409220ed"></script>
   </head>
   <body>
-    <p id="view-boot" role="status">Carregando…</p>
-    <script type="module" src="js/main.js?v=58f8e4fd52"></script>
+    <div id="view-boot" class="center" role="status" aria-live="polite">
+      <p>Carregando…</p>
+    </div>
+
+    <div id="view-login" class="center" hidden>
+      <section class="card login">
+        <h1>Gracie Barra Itu</h1>
+        <p class="muted">Sistema interno. Entre com seu e-mail e senha.</p>
+        <form id="login-form" novalidate>
+          <div class="field">
+            <label for="login-email">E-mail</label>
+            <input id="login-email" type="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="login-password">Senha</label>
+            <input id="login-password" type="password" autocomplete="current-password">
+          </div>
+          <p id="login-error" class="error-box" role="alert" hidden></p>
+          <button id="login-submit" type="submit">Entrar</button>
+        </form>
+      </section>
+    </div>
+
+    <div id="view-session" class="center" hidden>
+      <section id="session-loading" class="card" role="status" aria-live="polite">
+        <p>Entrando…</p>
+      </section>
+      <section id="session-error-box" class="card card-error" role="alert" hidden>
+        <p id="session-error-msg"></p>
+        <p id="session-error-ref" class="muted"></p>
+        <div class="actions">
+          <button id="session-retry" type="button">Tentar novamente</button>
+          <button id="session-logout" type="button" class="secondary">Sair</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="view-app" hidden>
+      <a class="skip" href="#main">Ir para o conteúdo</a>
+      <header class="topbar">
+        <h1 id="school">Sistema Interno</h1>
+        <span id="env" class="badge" hidden></span>
+        <span id="user-line" class="user-line"></span>
+        <button id="logout" type="button" class="link">Sair</button>
+      </header>
+
+      <main id="main" tabindex="-1">
+        <section id="dash-loading" class="card" role="status" aria-live="polite">
+          <p>Carregando…</p>
+        </section>
+
+        <section id="dash-error" class="card card-error" role="alert" hidden>
+          <p id="dash-error-msg"></p>
+          <p id="dash-error-ref" class="muted"></p>
+          <button id="dash-retry" type="button">Tentar novamente</button>
+        </section>
+
+        <section id="dash-ready" hidden>
+          <div class="card">
+            <h2>Alunos por status</h2>
+            <p class="total"><span id="total">0</span> <span class="muted">alunos no total</span></p>
+            <p id="empty" class="muted" hidden>Nenhum aluno cadastrado ainda.</p>
+            <ul id="status-list" class="status-list"></ul>
+          </div>
+
+          <div class="card notice">
+            <h2>Presença</h2>
+            <p id="attendance-notice"></p>
+          </div>
+
+          <p class="muted" id="updated"></p>
+          <button id="dash-refresh" type="button">Atualizar</button>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="js/main.js?v=ae409220ed"></script>
   </body>
 </html>

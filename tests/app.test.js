@@ -1,0 +1,226 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createApp } from '../js/app.js';
+import { createDom, flush } from './helpers/dom-env.js';
+
+const VIEWS = ['view-boot', 'view-login', 'view-session', 'view-app'];
+const SESSAO = { ok: true, data: { usuario: { nome: 'Ana Ficticia', perfil: 'Gestor' } }, error: null, correlationId: 'c1' };
+const fail = (code, message) => ({ ok: false, data: null, error: { code, message }, correlationId: 'c9' });
+const transport = (message) => Object.assign(new Error(message), { name: 'TransportError', kind: 'network' });
+
+function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = null } = {}) {
+  const dom = createDom();
+  const events = [];
+  let onUser = null;
+  const queue = { sessao: [...sessao], dashboard: [...dashboard] };
+  const next = (q) => { const v = q.length > 1 ? q.shift() : q[0]; if (v instanceof Error) throw v; return v; };
+
+  const auth = {
+    loginError,
+    start: (cb) => { onUser = cb; },
+    login: async (email, password) => {
+      events.push(['login', email, password]);
+      if (auth.loginError) throw Object.assign(new Error(auth.loginError), { name: 'AuthError' });
+    },
+    logout: async () => { events.push(['logout']); onUser(null); },
+    touch: () => events.push(['touch']),
+    checkIdle: async () => { events.push(['checkIdle']); return false; },
+  };
+  const api = { call: async (acao) => { events.push(['api', acao]); return next(queue.sessao); } };
+  const dash = { load: async () => { events.push(['dashboard']); return next(queue.dashboard); } };
+  const app = createApp({ doc: dom.doc, auth, api, dashboard: dash });
+  return { dom, events, app, auth, emit: (u) => onUser(u), count: (name) => events.filter((e) => e[0] === name).length };
+}
+
+test('sem sessão ao iniciar: mostra o login e nada do sistema', async () => {
+  const { dom, app, emit } = setup();
+  app.start();
+  assert.deepEqual(dom.visible(VIEWS), ['view-boot']);
+  emit(null);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.ok(dom.$('login-email').focused > 0);
+});
+
+test('login com sucesso: entra, chama sessao e só então mostra o sistema e carrega o painel', async () => {
+  const { dom, app, emit, events } = setup();
+  app.start();
+  emit(null);
+  dom.$('login-email').value = 'ana@exemplo.com';
+  dom.$('login-password').value = 'segredo';
+  assert.equal(dom.submit('login-form'), true); // preventDefault chamado
+  await flush();
+  assert.deepEqual(events[0], ['login', 'ana@exemplo.com', 'segredo']);
+  assert.equal(dom.$('login-password').value, '', 'a senha é apagada do campo');
+  emit({ email: 'ana@exemplo.com' });
+  assert.deepEqual(dom.visible(VIEWS), ['view-session'], 'enquanto sessao não responde, o sistema não aparece');
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-app']);
+  assert.equal(dom.$('user-line').textContent, 'Ana Ficticia · Gestor');
+  assert.deepEqual(events.filter((e) => e[0] === 'api' || e[0] === 'dashboard').map((e) => e[0]), ['api', 'dashboard']);
+});
+
+test('sessão restaurada ao recarregar: sessao é chamada uma única vez mesmo com aviso duplicado', async () => {
+  const { dom, app, emit, count } = setup();
+  app.start();
+  emit({ email: 'ana@exemplo.com' });
+  emit({ email: 'ana@exemplo.com' });
+  assert.deepEqual(dom.visible(VIEWS), ['view-session']);
+  await flush();
+  assert.equal(count('api'), 1);
+  assert.deepEqual(dom.visible(VIEWS), ['view-app']);
+});
+
+test('falha no login: mostra a mensagem, libera o botão, apaga a senha e não chama sessao', async () => {
+  const { dom, app, emit, count } = setup({ loginError: 'E-mail ou senha incorretos.' });
+  app.start();
+  emit(null);
+  dom.$('login-email').value = 'ana@exemplo.com';
+  dom.$('login-password').value = 'errada';
+  dom.submit('login-form');
+  await flush();
+  assert.equal(dom.$('login-error').hidden, false);
+  assert.equal(dom.$('login-error').textContent, 'E-mail ou senha incorretos.');
+  assert.equal(dom.$('login-submit').disabled, false);
+  assert.equal(dom.$('login-password').value, '');
+  assert.equal(dom.$('login-email').value, 'ana@exemplo.com');
+  assert.equal(count('api'), 0);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+});
+
+test('envio duplo do formulário de login é ignorado', async () => {
+  const { dom, app, emit, count } = setup();
+  app.start();
+  emit(null);
+  dom.$('login-email').value = 'a@b.com';
+  dom.$('login-password').value = 'x';
+  dom.submit('login-form');
+  dom.submit('login-form');
+  await flush();
+  assert.equal(count('login'), 1);
+});
+
+test('sessao devolve ACESSO_NEGADO: encerra a sessão e volta ao login com aviso', async () => {
+  const { dom, app, emit, count } = setup({ sessao: [fail('ACESSO_NEGADO', 'Você não tem acesso.')] });
+  app.start();
+  emit({ email: 'x@exemplo.com' });
+  await flush();
+  assert.equal(count('logout'), 1);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.match(dom.$('login-error').textContent, /não tem acesso ao sistema/);
+});
+
+test('sessao devolve NAO_AUTENTICADO: encerra a sessão e pede para entrar de novo', async () => {
+  const { dom, app, emit, count } = setup({ sessao: [fail('NAO_AUTENTICADO', 'x')] });
+  app.start();
+  emit({ email: 'x@exemplo.com' });
+  await flush();
+  assert.equal(count('logout'), 1);
+  assert.match(dom.$('login-error').textContent, /sessão expirou/);
+});
+
+test('serviço indisponível ou rede fora do ar: tela de erro com tentar novamente (sem sair)', async () => {
+  for (const first of [fail('SERVICO_INDISPONIVEL', 'Serviço temporariamente indisponível.'), transport('Sem rede.')]) {
+    const { dom, app, emit, count } = setup({ sessao: [first, SESSAO] });
+    app.start();
+    emit({ email: 'a@b.com' });
+    await flush();
+    assert.deepEqual(dom.visible(VIEWS), ['view-session']);
+    assert.equal(dom.$('session-error-box').hidden, false);
+    assert.equal(dom.$('session-loading').hidden, true);
+    assert.ok(dom.$('session-error-msg').textContent.length > 0);
+    assert.equal(count('logout'), 0);
+    dom.click('session-retry');
+    await flush();
+    assert.deepEqual(dom.visible(VIEWS), ['view-app']);
+    assert.equal(count('api'), 2);
+  }
+});
+
+test('erro genérico do servidor mostra a referência', async () => {
+  const { dom, app, emit } = setup({ sessao: [fail('ERRO_INTERNO', 'Ocorreu um erro inesperado.')] });
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  assert.equal(dom.$('session-error-msg').textContent, 'Ocorreu um erro inesperado.');
+  assert.equal(dom.$('session-error-ref').textContent, 'Código de referência: c9');
+});
+
+test('painel devolve NAO_AUTENTICADO ou ACESSO_NEGADO: encerra a sessão', async () => {
+  for (const code of ['NAO_AUTENTICADO', 'ACESSO_NEGADO']) {
+    const { dom, app, emit, count } = setup({ dashboard: [{ ok: false, code }] });
+    app.start();
+    emit({ email: 'a@b.com' });
+    await flush();
+    assert.equal(count('logout'), 1, code);
+    assert.deepEqual(dom.visible(VIEWS), ['view-login'], code);
+  }
+});
+
+test('Sair: encerra a sessão e mostra o login limpo', async () => {
+  const { dom, app, emit, count } = setup();
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  dom.click('logout');
+  await flush();
+  assert.equal(count('logout'), 1);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.equal(dom.$('login-error').hidden, true);
+});
+
+test('Sair da tela de erro de sessão também encerra', async () => {
+  const { dom, app, emit, count } = setup({ sessao: [fail('SERVICO_INDISPONIVEL', 'x')] });
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  dom.click('session-logout');
+  await flush();
+  assert.equal(count('logout'), 1);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+});
+
+test('inatividade: onIdle define o aviso exibido no login depois da saída', async () => {
+  const { dom, app, emit } = setup();
+  app.start();
+  emit({ email: 'a@b.com' });
+  await flush();
+  app.onIdle();
+  emit(null);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+  assert.match(dom.$('login-error').textContent, /inatividade/);
+});
+
+test('resposta atrasada de uma sessão que já terminou não reabre o sistema', async () => {
+  const dom = createDom();
+  let onUser = null;
+  let release;
+  const slow = new Promise((resolve) => { release = resolve; });
+  const auth = {
+    start: (cb) => { onUser = cb; },
+    login: async () => {},
+    logout: async () => { onUser(null); },
+    touch() {},
+    checkIdle: async () => false,
+  };
+  const api = { call: async () => { await slow; return SESSAO; } };
+  const app = createApp({ doc: dom.doc, auth, api, dashboard: { load: async () => ({ ok: true }) } });
+  app.start();
+  onUser({ email: 'a@b.com' });
+  onUser(null);
+  release();
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
+});
+
+test('qualquer interação renova a atividade; voltar à aba confere a inatividade pelo relógio', async () => {
+  const { dom, app, count } = setup();
+  app.start();
+  ['keydown', 'pointerdown', 'touchstart', 'scroll'].forEach((ev) => dom.docEvent(ev));
+  assert.equal(count('touch'), 4);
+  dom.doc.hidden = true;
+  dom.docEvent('visibilitychange');
+  assert.equal(count('checkIdle'), 0, 'com a aba oculta não confere');
+  dom.doc.hidden = false;
+  dom.docEvent('visibilitychange');
+  assert.equal(count('checkIdle'), 1);
+});
