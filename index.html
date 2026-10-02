@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=a1adb3c20b" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=a1adb3c20b">
-    <script src="js/framebust.js?v=a1adb3c20b"></script>
+    <link rel="icon" href="img/icone.png?v=e722f3b6a1" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=e722f3b6a1">
+    <script src="js/framebust.js?v=e722f3b6a1"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=a1adb3c20b" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=e722f3b6a1" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -51,7 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
-        <img class="brand" src="img/icone.png?v=a1adb3c20b" alt="" width="256" height="191">
+        <img class="brand" src="img/icone.png?v=e722f3b6a1" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -61,6 +61,7 @@
       <nav class="tabs" aria-label="Seções">
         <button id="tab-dashboard" type="button" class="tab" aria-current="page">Início</button>
         <button id="tab-students" type="button" class="tab">Alunos</button>
+        <button id="tab-mensalidades" type="button" class="tab" hidden>Mensalidades</button>
       </nav>
 
       <main id="main" tabindex="-1">
@@ -161,6 +162,93 @@
           </section>
         </div>
         </div>
+
+      <div id="view-mensalidades" hidden>
+        <div id="view-mensalidades-inner">
+          <form id="mens-filter" class="card filters" role="search">
+            <div class="field">
+              <label for="mens-comp">Competência</label>
+              <input id="mens-comp" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+            </div>
+            <div class="field">
+              <label for="mens-q">Buscar por nome</label>
+              <input id="mens-q" type="search" maxlength="60" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="mens-status">Status</label>
+              <select id="mens-status"><option value="">Todos os status</option></select>
+            </div>
+            <button type="submit">Buscar</button>
+            <button id="mens-refresh" type="button" class="secondary">Atualizar</button>
+            <button id="mens-generate" type="button" class="secondary" hidden>Gerar cobranças do mês</button>
+          </form>
+
+          <p id="mens-notice" class="success" role="status" hidden></p>
+
+          <div id="mens-totals" class="total-grid" aria-label="Totais da competência"></div>
+
+          <section id="mens-loading" class="card" role="status" aria-live="polite">
+            <p>Carregando mensalidades…</p>
+          </section>
+          <section id="mens-error" class="card card-error" role="alert" hidden>
+            <p id="mens-error-msg"></p>
+            <p id="mens-error-ref" class="muted"></p>
+            <button id="mens-retry" type="button">Tentar novamente</button>
+          </section>
+          <section id="mens-empty" class="card" hidden>
+            <p class="muted">Nenhuma cobrança encontrada para esta competência e filtros.</p>
+          </section>
+
+          <div id="mens-ready" hidden>
+            <p class="muted" id="mens-count" role="status" aria-live="polite"></p>
+            <p id="mens-truncated" class="muted" hidden>Mostrando as primeiras 500 cobranças. Use a busca ou o filtro de status para ver as demais.</p>
+            <ul id="mens-list" class="mens-list"></ul>
+          </div>
+        </div>
+
+        <div id="mens-dialog" class="drawer" hidden>
+          <div id="mens-dialog-backdrop" class="drawer-backdrop"></div>
+          <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="mens-dialog-title">
+            <h3 id="mens-dialog-title"></h3>
+            <p id="mens-dialog-info" class="muted"></p>
+            <div id="mens-dialog-error" class="form-error" role="alert" tabindex="-1" hidden></div>
+            <form id="mens-form" novalidate>
+              <div class="field" id="mens-f-data-box">
+                <label for="mens-f-data">Data do pagamento</label>
+                <input id="mens-f-data" type="date" min="2020-01-01">
+              </div>
+              <div class="field" id="mens-f-forma-box">
+                <label for="mens-f-forma">Forma de pagamento</label>
+                <select id="mens-f-forma"><option value="">Escolha…</option></select>
+              </div>
+              <div class="field" id="mens-f-conta-box">
+                <label for="mens-f-conta">Conta</label>
+                <select id="mens-f-conta"><option value="">Não informar</option></select>
+              </div>
+              <div class="field" id="mens-f-obs-box">
+                <label for="mens-f-obs">Observação (opcional)</label>
+                <input id="mens-f-obs" maxlength="200" autocomplete="off">
+              </div>
+              <div class="field" id="mens-f-venc-box">
+                <label for="mens-f-venc">Novo vencimento</label>
+                <input id="mens-f-venc" type="date" min="2020-01-01">
+              </div>
+              <div class="field" id="mens-f-motivo-box">
+                <label for="mens-f-motivo">Motivo (obrigatório)</label>
+                <input id="mens-f-motivo" maxlength="200" autocomplete="off">
+              </div>
+              <div class="field" id="mens-f-gcomp-box">
+                <label for="mens-f-gcomp">Competência</label>
+                <select id="mens-f-gcomp"><option value=""></option></select>
+              </div>
+              <div class="actions">
+                <button id="mens-submit" type="submit">Confirmar</button>
+                <button id="mens-cancel" type="button" class="secondary">Fechar</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
 
       <div id="view-students" hidden>
         <form id="students-filter" class="card filters" role="search">
@@ -304,6 +392,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=a1adb3c20b"></script>
+    <script type="module" src="js/main.js?v=e722f3b6a1"></script>
   </body>
 </html>

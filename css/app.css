@@ -157,6 +157,22 @@ button.kpi:hover { background: var(--tint); border-color: var(--line); border-to
 .drawer-panel { position: relative; width: min(480px, 100%); height: 100%; overflow-y: auto; background: var(--bg); padding: 20px; box-shadow: -6px 0 24px rgba(0, 0, 0, .2); }
 .drawer-panel:focus { outline: none; }
 .drawer-panel h3 { margin: 0; font-size: 1.1rem; }
+.mens-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.mens-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.mens-main { display: flex; flex-direction: column; min-width: 0; }
+.mens-value { white-space: nowrap; }
+.mens-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.mens-actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.mens-actions button { min-height: 36px; padding: 6px 12px; font-size: .9rem; }
+.chip { padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+.chip-paga { background: var(--ok-bg); color: var(--ok-text); }
+.chip-pendente { background: var(--notice-bg); color: #6b4a00; border-color: #e8d49a; }
+.chip-pacote { background: #e8eef7; color: #1d3a6b; }
+.chip-vencida { background: var(--error-bg); color: var(--error-text); border-color: var(--error-text); }
+.chip-neutro { background: var(--tint); color: var(--muted); border-color: var(--line); }
+.total-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }
+.total-card { display: flex; flex-direction: column; padding: 12px 14px; background: var(--tint); border-left: 4px solid var(--red); border-radius: 6px; }
+.total-card strong { font-size: 1.3rem; }
 
 @media (max-width: 800px) {
   .dash-cols { grid-template-columns: 1fr; }
@@ -164,6 +180,8 @@ button.kpi:hover { background: var(--tint); border-color: var(--line); border-to
 @media (max-width: 480px) {
   .kpi-grid, .kpi-grid-main { grid-template-columns: 1fr; }
   .kpi, .kpi-big { min-height: 0; }
+  .mens-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .mens-chips { grid-column: 1 / -1; justify-content: flex-start; }
   .bars li { grid-template-columns: 90px 1fr 32px; }
   .bars-pair li { grid-template-columns: 52px 1fr; }
   .bars-pair .bar-values { grid-column: 1 / -1; text-align: left; }

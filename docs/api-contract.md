@@ -30,6 +30,13 @@ HTTP 200 sempre. Envelope: `{ "ok": true|false, "data": ..., "error": { "code", 
 |---|---|---|
 | `sessao` | — | usuário ativo (audita LOGIN) |
 | `dashboard.obter` | `[{ competencia? }]` (`AAAA-MM`, padrão: mês de hoje; só vale para `dashboard:completo`) | `dashboard:ver` (visão completa: `dashboard:completo`) |
+| `mensalidades.listar` | `[{ competencia?, busca?, status? }]` | `mensalidades:ver` |
+| `mensalidades.registrarPagamento` | `[chargeId, { versao, data, forma, conta?, observacao? }]` | `mensalidades:registrar` |
+| `mensalidades.editarVencimento` | `[chargeId, { versao, vencimento }]` | `mensalidades:registrar` |
+| `mensalidades.cancelar` | `[chargeId, { versao, motivo }]` | `mensalidades:cancelar` |
+| `mensalidades.estornar` | `[paymentId, { motivo }]` | `mensalidades:cancelar` |
+| `mensalidades.previaGerar` | `[{ competencia }]` | `mensalidades:registrar` |
+| `mensalidades.gerar` | `[{ competencia }]` | `mensalidades:registrar` |
 | `alunos.listar` | `[params]` | `alunos:listar` |
 | `alunos.obter` | `[studentId]` | `alunos:listar` |
 | `alunos.criar` | `[payload]` | `alunos:criar` |
@@ -45,6 +52,7 @@ HTTP 200 sempre. Envelope: `{ "ok": true|false, "data": ..., "error": { "code", 
 | `VALIDACAO` | pedido ou campos inválidos | mostra os `fields` |
 | `CONFLITO` | duplicidade de CPF ou de nome e nascimento | mostra os `fields`; pode pedir confirmação |
 | `VERSAO_DESATUALIZADA` | o cadastro mudou desde a leitura | oferece recarregar |
+| `ESTADO_INVALIDO` | a operação não cabe no estado atual (ex.: cobrança já paga) | mensagem; recarregar a lista |
 | `NAO_ENCONTRADO`, `SISTEMA_OCUPADO`, `AUDITORIA_INDISPONIVEL`, `CONFIG_INVALIDA`, `SCHEMA_INVALIDO`, `PLANILHA_INDISPONIVEL`, `DADOS_INCONSISTENTES`, `ERRO_INTERNO` | ver `ErrorService.SAFE_MESSAGES` | mensagem segura + `correlationId` |
 
 ## Segurança
@@ -83,3 +91,14 @@ quando há lançamento).
 Campos novos na resposta completa: `avisos[]` (problemas de qualidade dos dados), `aniversariantesEstado` (`ok` ou `sem_datas`),
 `graficos.receitaPrevistaRecebida.meses[]` e, em `detalhes`, as listas `inadimplentes`, `contasAVencer` (`info`: competência, vencimento, valor e, só em
 inadimplentes, telefone) e `receitaRecebida` (data, valor, forma). Valores em reais como número, datas `AAAA-MM-DD`; o portal formata em pt-BR.
+
+## Mensalidades
+
+Perfis: ver = Administrador, Gestor e Financeiro; registrar pagamento, editar vencimento e gerar cobranças = Administrador e Financeiro; cancelar e estornar = Administrador.
+
+- `mensalidades.listar`: cobranças da competência (padrão: mês atual) com `itens[]` (`charge_id`, `nome`, `vencimento`, `vencida`, `valor`, `status`, `versao`, `pagamento`, `acoes`), `totais` (previsto, pago, pendente, vencido), `porStatus`, `permissoes` e `opcoes`. Até 500 itens; `total` informa quantos existem.
+- Escritas devolvem o item atualizado. `versao` (concorrência otimista) é obrigatória em registrar pagamento, editar vencimento e cancelar; `VERSAO_DESATUALIZADA` pede para recarregar.
+- **Pagamento é sempre integral**: o valor é o da cobrança (um `valor` diferente é recusado). A data não pode ser futura. Forma: PIX, Débito, Crédito, Dinheiro ou Misto.
+- **Nada financeiro é apagado.** Cancelar muda a cobrança para `Cancelada` (só `Pendente` ou `Coberta por pacote`; paga exige estorno antes). Estornar muda o pagamento para `Estornado` e a cobrança paga volta a `Pendente`. Motivo obrigatório (3 a 200 caracteres).
+- Cada operação é auditada **antes** de gravar, sob lock; se a segunda aba falhar, a primeira é desfeita.
+- **Gerar cobranças** só vale para o mês atual e o próximo. Entram matrículas `Ativa` de alunos `Ativo`, com valor maior que zero e sem `tipo_isencao`; quem já tem cobrança na competência (de qualquer status) é pulado. `pago_ate` cobrindo o mês gera `Coberta por pacote`. Sem `dia_vencimento`, vale o dia padrão (`Configuracoes.dia_vencimento_padrao`, padrão 10). **Nenhuma mensagem é enviada a ninguém**: é só o registro interno.

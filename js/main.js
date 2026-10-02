@@ -1,12 +1,13 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=a1adb3c20b';
-import { loadFirebase } from './firebase.js?v=a1adb3c20b';
-import { createApi } from './api.js?v=a1adb3c20b';
-import { createAuth } from './auth.js?v=a1adb3c20b';
-import { createDashboard } from './dashboard.js?v=a1adb3c20b';
-import { createStudentForm } from './student-form.js?v=a1adb3c20b';
-import { createStudents } from './students.js?v=a1adb3c20b';
-import { createApp } from './app.js?v=a1adb3c20b';
+import { CONFIG } from './config.js?v=e722f3b6a1';
+import { loadFirebase } from './firebase.js?v=e722f3b6a1';
+import { createApi } from './api.js?v=e722f3b6a1';
+import { createAuth } from './auth.js?v=e722f3b6a1';
+import { createDashboard } from './dashboard.js?v=e722f3b6a1';
+import { createStudentForm } from './student-form.js?v=e722f3b6a1';
+import { createStudents } from './students.js?v=e722f3b6a1';
+import { createMensalidades } from './mensalidades.js?v=e722f3b6a1';
+import { createApp } from './app.js?v=e722f3b6a1';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -39,5 +40,6 @@ const students = createStudents({
   createForm: createStudentForm,
   onAuthFailure: (code) => app.onAuthFailure(code),
 });
-app = createApp({ doc: document, auth, api, dashboard, students });
+const mensalidades = createMensalidades({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code) });
+app = createApp({ doc: document, auth, api, dashboard, students, mensalidades });
 app.start();

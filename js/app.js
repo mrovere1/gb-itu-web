@@ -13,7 +13,10 @@ const SIGNOUT_FAILED_MESSAGE = 'Não foi possível encerrar a sessão com segura
 const UNEXPECTED_RESPONSE = 'O servidor respondeu de forma inesperada. Tente novamente em instantes.';
 const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'touchstart', 'scroll'];
 
-export function createApp({ doc, auth, api, dashboard, students }) {
+const MENSALIDADES_PERFIS = ['Administrador', 'Gestor', 'Financeiro']; // só a vitrine: o servidor é quem autoriza
+const TABS = [['dashboard', 'tab-dashboard', 'view-dashboard'], ['students', 'tab-students', 'view-students'], ['mensalidades', 'tab-mensalidades', 'view-mensalidades']];
+
+export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {} } }) {
   const $ = (id) => doc.getElementById(id);
   let busy = false;           // login em andamento
   let signedIn = false;       // já há usuário do Firebase (evita carregar a sessão duas vezes)
@@ -25,14 +28,13 @@ export function createApp({ doc, auth, api, dashboard, students }) {
   }
 
   function showTab(view) {
-    const onStudents = view === 'students';
-    $('view-dashboard').hidden = onStudents;
-    $('view-students').hidden = !onStudents;
-    [['dashboard', 'tab-dashboard'], ['students', 'tab-students']].forEach(([name, id]) => {
-      if (name === view) $(id).setAttribute('aria-current', 'page');
-      else $(id).removeAttribute('aria-current');
+    TABS.forEach(([name, tabId, viewId]) => {
+      $(viewId).hidden = name !== view;
+      if (name === view) $(tabId).setAttribute('aria-current', 'page');
+      else $(tabId).removeAttribute('aria-current');
     });
-    if (onStudents) students.activate();
+    if (view === 'students') students.activate();
+    if (view === 'mensalidades') mensalidades.activate();
   }
 
   /** Abre o cadastro de um aluno a partir do painel. */
@@ -63,6 +65,8 @@ export function createApp({ doc, auth, api, dashboard, students }) {
     signedIn = false;
     dashboard.reset();
     students.reset();
+    mensalidades.reset();
+    $('tab-mensalidades').hidden = true;
     showTab('dashboard');
     $('user-line').textContent = '';
     const message = pendingMessage;
@@ -96,6 +100,7 @@ export function createApp({ doc, auth, api, dashboard, students }) {
       if (resp.ok) {
         const usuario = resp.data.usuario;
         $('user-line').textContent = usuario.nome + ' · ' + usuario.perfil;
+        $('tab-mensalidades').hidden = !MENSALIDADES_PERFIS.includes(usuario.perfil);
         show('view-app');
         const result = await dashboard.load();
         if (mine === generation && !result.ok && AUTH_FAILURES[result.code]) await endSession(AUTH_FAILURES[result.code]);
@@ -171,6 +176,7 @@ export function createApp({ doc, auth, api, dashboard, students }) {
     $('login-form').addEventListener('submit', onLoginSubmit);
     $('tab-dashboard').addEventListener('click', () => showTab('dashboard'));
     $('tab-students').addEventListener('click', () => showTab('students'));
+    $('tab-mensalidades').addEventListener('click', () => showTab('mensalidades'));
     $('logout').addEventListener('click', onLogout);
     $('session-logout').addEventListener('click', onLogout);
     $('session-retry').addEventListener('click', () => { loadSession(); });
