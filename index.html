@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=459aba66e2" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=459aba66e2">
-    <script src="js/framebust.js?v=459aba66e2"></script>
+    <link rel="icon" href="img/icone.png?v=5e7914f00d" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=5e7914f00d">
+    <script src="js/framebust.js?v=5e7914f00d"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=459aba66e2" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=5e7914f00d" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -50,22 +50,36 @@
 
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
-      <header class="topbar">
-        <img class="brand" src="img/icone.png?v=459aba66e2" alt="" width="256" height="191">
-        <h1 id="school">Sistema Interno</h1>
-        <span id="env" class="badge" hidden></span>
-        <span id="user-line" class="user-line"></span>
-        <button id="logout" type="button" class="link">Sair</button>
-      </header>
+      <div class="shell">
+        <aside id="sidebar" class="sidebar" data-open="false">
+          <div class="side-brand">
+            <img class="brand" src="img/icone.png?v=5e7914f00d" alt="" width="256" height="191">
+            <div class="side-title">
+              <h1 id="school">Sistema Interno</h1>
+              <span id="env" class="badge" hidden></span>
+            </div>
+          </div>
+          <nav class="tabs" aria-label="Seções">
+            <button id="tab-dashboard" type="button" class="tab" aria-current="page"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Início</span></button>
+            <button id="tab-students" type="button" class="tab"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8"/><path d="M18 14.3c2.2.6 3.5 2.6 3.5 5.7"/></svg><span>Alunos</span></button>
+            <button id="tab-mensalidades" type="button" class="tab" hidden><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/><path d="M6.5 15h4"/></svg><span>Mensalidades</span></button>
+            <button id="tab-alunofull" type="button" class="tab" hidden><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21v-1.5A5.5 5.5 0 0110.5 14h3a5.5 5.5 0 015.5 5.5V21"/><path d="M3 21h18"/></svg><span>Aluno Full</span></button>
+          </nav>
+          <div class="side-user">
+            <span id="user-line" class="user-line"></span>
+            <button id="logout" type="button" class="link">Sair</button>
+          </div>
+        </aside>
+        <div id="sidebar-backdrop" class="side-backdrop" hidden></div>
 
-      <nav class="tabs" aria-label="Seções">
-        <button id="tab-dashboard" type="button" class="tab" aria-current="page">Início</button>
-        <button id="tab-students" type="button" class="tab">Alunos</button>
-        <button id="tab-mensalidades" type="button" class="tab" hidden>Mensalidades</button>
-        <button id="tab-alunofull" type="button" class="tab" hidden>Aluno Full</button>
-      </nav>
+        <div class="content">
+          <header class="topbar">
+            <button id="nav-toggle" type="button" class="nav-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Menu"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+            <img class="brand" src="img/icone.png?v=5e7914f00d" alt="" width="256" height="191">
+            <span class="topbar-name">GB Itu</span>
+          </header>
 
-      <main id="main" tabindex="-1">
+          <main id="main" tabindex="-1">
         <div id="view-dashboard">
         <section id="dash-loading" class="card" role="status" aria-live="polite">
           <p>Carregando…</p>
@@ -384,7 +398,52 @@
               <div class="actions">
                 <button id="af-save" type="submit">Salvar</button>
                 <button id="af-cancel" type="button" class="secondary">Fechar</button>
+                <button id="af-open-pkg" type="button" class="secondary" hidden>Registrar pacote…</button>
                 <button id="af-open-student" type="button" class="link">Abrir cadastro completo</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <div id="pk-dialog" class="drawer" hidden>
+          <div id="pk-dialog-backdrop" class="drawer-backdrop"></div>
+          <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="pk-dialog-title">
+            <h3 id="pk-dialog-title"></h3>
+            <p id="pk-dialog-info" class="muted"></p>
+            <div id="pk-dialog-error" class="form-error" role="alert" tabindex="-1" hidden></div>
+            <form id="pk-form" novalidate>
+              <div class="field">
+                <label for="pk-f-modo">Como o valor entra</label>
+                <select id="pk-f-modo"></select>
+              </div>
+              <div class="field">
+                <label for="pk-f-data">Data da venda</label>
+                <input id="pk-f-data" type="date" min="2020-01-01">
+              </div>
+              <div class="field">
+                <label for="pk-f-mes">Primeiro mês coberto</label>
+                <input id="pk-f-mes" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+              </div>
+              <div class="field">
+                <label for="pk-f-meses">Quantidade de meses (1 a 24)</label>
+                <input id="pk-f-meses" type="number" min="1" max="24" step="1" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label for="pk-f-valor">Valor total do pacote (R$)</label>
+                <input id="pk-f-valor" inputmode="decimal" maxlength="12" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="pk-f-forma">Forma de pagamento</label>
+                <select id="pk-f-forma"></select>
+              </div>
+              <div class="field">
+                <label for="pk-f-obs">Observação (opcional)</label>
+                <input id="pk-f-obs" maxlength="200" autocomplete="off">
+              </div>
+              <p id="pk-preview" class="muted" role="status" aria-live="polite"></p>
+              <div class="actions">
+                <button id="pk-save" type="submit">Registrar pacote</button>
+                <button id="pk-cancel" type="button" class="secondary">Fechar</button>
               </div>
             </form>
           </section>
@@ -535,9 +594,11 @@
           <p id="detail-notice" class="success" role="status" hidden></p>
           <ul id="detail-warnings" class="warnings"></ul>
           <dl id="detail-fields" class="fields"></dl>
-      </main>
+          </main>
+        </div>
+      </div>
     </div>
 
-    <script type="module" src="js/main.js?v=459aba66e2"></script>
+    <script type="module" src="js/main.js?v=5e7914f00d"></script>
   </body>
 </html>

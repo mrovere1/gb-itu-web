@@ -1,15 +1,16 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=459aba66e2';
-import { loadFirebase } from './firebase.js?v=459aba66e2';
-import { createApi } from './api.js?v=459aba66e2';
-import { createAuth } from './auth.js?v=459aba66e2';
-import { createDashboard } from './dashboard.js?v=459aba66e2';
-import { createStudentForm } from './student-form.js?v=459aba66e2';
-import { createStudents } from './students.js?v=459aba66e2';
-import { createMensalidades } from './mensalidades.js?v=459aba66e2';
-import { createAlunoFull } from './alunofull.js?v=459aba66e2';
-import { createDataTable } from './data-table.js?v=459aba66e2';
-import { createApp } from './app.js?v=459aba66e2';
+import { CONFIG } from './config.js?v=5e7914f00d';
+import { loadFirebase } from './firebase.js?v=5e7914f00d';
+import { createApi } from './api.js?v=5e7914f00d';
+import { createAuth } from './auth.js?v=5e7914f00d';
+import { createDashboard } from './dashboard.js?v=5e7914f00d';
+import { createStudentForm } from './student-form.js?v=5e7914f00d';
+import { createStudents } from './students.js?v=5e7914f00d';
+import { createMensalidades } from './mensalidades.js?v=5e7914f00d';
+import { createAlunoFull } from './alunofull.js?v=5e7914f00d';
+import { createPacote } from './pacote.js?v=5e7914f00d';
+import { createDataTable } from './data-table.js?v=5e7914f00d';
+import { createApp } from './app.js?v=5e7914f00d';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -59,6 +60,16 @@ const students = createStudents({
   createTable,
 });
 const mensalidades = createMensalidades({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code), createTable });
-const alunofull = createAlunoFull({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code), createTable, openStudent: (id) => app.openStudent(id) });
+const PACOTE_STALE = 'Este cadastro foi alterado por outra pessoa. Os dados foram recarregados: abra o aluno de novo e refaça o pacote.';
+let alunofull;
+const pacote = createPacote({
+  doc: document,
+  api,
+  onAuthFailure: (code) => app.onAuthFailure(code),
+  onSaved: (r) => alunofull.refresh('Pacote registrado: ' + r.meses + (r.meses === 1 ? ' mês' : ' meses') + ', pago até ' + r.pago_ate.slice(5) + '/' + r.pago_ate.slice(0, 4)
+    + (r.previstos ? ' (' + r.previstos + (r.previstos === 1 ? ' parcela prevista' : ' parcelas previstas') + ').' : '.')),
+  onStale: () => alunofull.refresh(PACOTE_STALE),
+});
+alunofull = createAlunoFull({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code), createTable, openStudent: (id) => app.openStudent(id), openPackage: pacote.open, closePackage: pacote.close });
 app = createApp({ doc: document, auth, api, dashboard, students, mensalidades, alunofull });
 app.start();

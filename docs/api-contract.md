@@ -109,3 +109,9 @@ Perfis: ver = Administrador, Gestor e Financeiro; registrar pagamento, editar ve
 ### Área de trabalho dos cartões (portal)
 
 Cada cartão com lista (`detalhes`) abre a sua área de trabalho em tela larga: inadimplentes, contas a vencer, receita recebida, alunos ativos e novas matrículas. Tabela ordenável (`aria-sort`), busca por nome, filtro da lista, seleção de linhas, exportação para planilha (CSV com `;`, BOM e proteção contra fórmulas) e, nos inadimplentes, quadro por faixa de atraso (1–7, 8–30, 31–60 e mais de 60 dias). O CSV é gerado no navegador (nada vai para a rede). A área de trabalho **não altera dados financeiros**: "Ver em Mensalidades" leva à aba já filtrada pelo aluno e pela competência, onde o pagamento é registrado.
+
+## Pacote (aba Aluno Full e Mensalidades)
+
+- `pacotes.registrar` `[studentId, { versao, modo, data, mes_inicial, meses, valor_total, forma, observacao? }]`: `modo` = `unico` ou `recorrente`; `versao` = `matricula.versao`. Resposta `{ resumo }`. Contrato completo no repositório `gb-itu` (`docs/api-contract.md`).
+- `pacotes.cancelarPrevisto` `[paymentId, { motivo }]`: cancela parcela `Previsto`. O item de `mensalidades.listar` traz `acoes.cancelarPrevisto`.
+- `alunofull.listar` traz `opcoes.formas` (formas de pagamento aceitas).

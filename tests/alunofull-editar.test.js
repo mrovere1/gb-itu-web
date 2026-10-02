@@ -23,7 +23,7 @@ const DATA = (over = {}) => ({
   ],
   semResponsavel: ['ALU-3', 'ALU-4'],
   planos: [{ plan_id: 'PLA-1', nome: 'Custom', valor_padrao: 200, status: 'Ativo' }, { plan_id: 'PLA-0', nome: 'Antigo', valor_padrao: 100, status: 'Inativo' }],
-  opcoes: { isencoes: ['Assistente', 'Bolsa / cortesia'] }, permissoes: { editar: true }, avisos: [], total: 4, ...over,
+  opcoes: { isencoes: ['Assistente', 'Bolsa / cortesia'], formas: ['PIX', 'Crédito'] }, permissoes: { editar: true }, avisos: [], total: 4, ...over,
 });
 
 const texts = (node) => [node._t, ...(node.children || []).flatMap(texts)].filter(Boolean);
@@ -35,9 +35,10 @@ function setup(respond = () => ok(DATA()), { withTable = false } = {}) {
   const calls = [];
   const auth = [];
   const opened = [];
+  const packages = { opened: [], closed: 0 };
   const api = { call: async (acao, args) => { calls.push({ acao, args }); return respond(acao, args, calls.length); } };
   const createTable = withTable ? (opts) => createDataTable({ doc: dom.doc, storage: null, download: () => {}, ...opts }) : null;
-  const af = createAlunoFull({ doc: dom.doc, api, onAuthFailure: (c) => auth.push(c), createTable, openStudent: (id) => opened.push(id) });
+  const af = createAlunoFull({ doc: dom.doc, api, onAuthFailure: (c) => auth.push(c), createTable, openStudent: (id) => opened.push(id), openPackage: (arg) => packages.opened.push(arg), closePackage: () => { packages.closed += 1; } });
   const nameButton = (nome) => {
     const found = [];
     const walk = (n) => { if (n.tag === 'button' && n._t === nome) found.push(n); (n.children || []).forEach(walk); };
@@ -46,7 +47,7 @@ function setup(respond = () => ok(DATA()), { withTable = false } = {}) {
   };
   const open = async (nome) => { af.activate(); await flush(); const b = nameButton(nome); b.listeners.click(); return b; };
   const submit = async () => { dom.submit('af-form'); await flush(); };
-  return { dom, calls, auth, opened, af, nameButton, open, submit };
+  return { dom, calls, auth, opened, packages, af, nameButton, open, submit };
 }
 const mutations = (calls) => calls.filter((c) => c.acao !== 'alunofull.listar');
 
@@ -348,4 +349,51 @@ test('nada do servidor entra como HTML no painel (nomes só como texto)', async 
   b.listeners.click();
   assert.equal(dom.$('af-dialog-title').textContent, evil);
   assert.ok(dom.$('af-dialog-info').textContent.includes(evil));
+});
+
+// ---------- Registrar pacote ----------
+test('botão "Registrar pacote": só para aluno com matrícula Ativa e sem isenção', async () => {
+  const data = DATA();
+  data.alunos.push(aluno('ALU-5', 'Isento Ficticio', { matricula: mat({ tipo_isencao: 'Bolsa / cortesia' }) }), aluno('ALU-6', 'Suspenso Ficticio', { matricula: mat({ status: 'Inativa' }) }));
+  data.semResponsavel.push('ALU-5', 'ALU-6');
+  data.total = 6;
+  const a = setup(() => ok(data));
+  await a.open('Ana Ficticia');
+  assert.equal(a.dom.$('af-open-pkg').hidden, false);
+  for (const nome of ['Daniela Solta', 'Isento Ficticio', 'Suspenso Ficticio']) {
+    a.nameButton(nome).listeners.click();
+    assert.equal(a.dom.$('af-open-pkg').hidden, true, nome);
+  }
+});
+
+test('"Registrar pacote" fecha o painel de edição e abre o de pacote com o aluno, o foco de volta e as formas do servidor', async () => {
+  const { dom, packages, open } = setup();
+  const opener = await open('Ana Ficticia');
+  dom.click('af-open-pkg');
+  assert.equal(dom.$('af-dialog').hidden, true);
+  assert.equal(packages.opened.length, 1);
+  const arg = packages.opened[0];
+  assert.equal(arg.item.student_id, 'ALU-2');
+  assert.equal(arg.item.matricula.versao, 'v-mat');
+  assert.deepEqual(arg.formas, ['PIX', 'Crédito']);
+  assert.equal(arg.opener, opener);
+});
+
+test('refresh: recarrega a lista e mostra o aviso depois que ela volta', async () => {
+  const { dom, calls, af } = setup();
+  af.activate();
+  await flush();
+  af.refresh('Pacote registrado.');
+  await flush();
+  assert.equal(calls.filter((c) => c.acao === 'alunofull.listar').length, 2);
+  assert.equal(dom.$('af-notice').textContent, 'Pacote registrado.');
+  assert.equal(dom.$('af-notice').hidden, false);
+});
+
+test('reset também fecha o painel de pacote', async () => {
+  const { packages, af } = setup();
+  af.activate();
+  await flush();
+  af.reset();
+  assert.ok(packages.closed >= 1);
 });

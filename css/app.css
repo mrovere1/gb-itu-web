@@ -39,17 +39,44 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 48px; }
 #student-form-section, #student-detail { max-width: 1040px; margin-left: auto; margin-right: auto; }
 main:focus { outline: none; }
 
-/* ---------- Topo e abas ---------- */
-.topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg); color: var(--ink); flex-wrap: wrap; border-bottom: 3px solid var(--red); }
-.brand { height: 34px; width: auto; display: block; }
-.topbar h1 { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: .01em; flex: 1 1 auto; }
-.badge { background: #f0b429; color: var(--ink); padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
-.user-line { font-size: .9rem; color: var(--muted); }
-.tabs { display: flex; gap: 4px; padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; }
-.tab { background: transparent; color: var(--muted); border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: 12px 18px; min-height: 48px; font-weight: 600; }
-.tab:hover { filter: none; color: var(--ink); background: var(--tint); }
-.tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--red); }
-.tab[aria-current="page"]:hover { background: transparent; }
+/* ---------- Estrutura do aplicativo: menu à esquerda, conteúdo à direita ---------- */
+.shell { display: grid; grid-template-columns: 224px minmax(0, 1fr); min-height: 100vh; }
+.sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 18px; padding: 16px 10px 12px; background: #161616; color: #e8e8e8; overflow-y: auto; }
+.side-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.brand { height: 30px; width: auto; display: block; }
+.side-title { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.side-title h1 { margin: 0; font-size: .875rem; font-weight: 700; letter-spacing: .01em; color: #fff; overflow-wrap: anywhere; }
+.badge { background: #f0b429; color: var(--ink); padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.tabs { display: flex; flex-direction: column; gap: 2px; }
+.tab { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; color: #cfcfcf; border: 0; border-radius: 8px; padding: 8px 10px; min-height: 40px; font-weight: 500; font-size: .85rem; box-shadow: inset 3px 0 0 transparent; }
+.tab .ico { flex: none; opacity: .9; width: 18px; height: 18px; }
+.tab:hover { filter: none; color: #fff; background: rgba(255, 255, 255, .08); }
+.tab[aria-current="page"] { color: #fff; background: rgba(255, 255, 255, .13); box-shadow: inset 3px 0 0 var(--red); }
+.tab[aria-current="page"]:hover { background: rgba(255, 255, 255, .13); }
+.tab:focus-visible, .sidebar .link:focus-visible, .nav-toggle:focus-visible { outline: 3px solid #fff; outline-offset: -3px; }
+.side-user { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px 6px 0; border-top: 1px solid #333; }
+.user-line { font-size: .78rem; color: #b8b8b8; overflow-wrap: anywhere; }
+.sidebar button.link { color: #fff; border-color: #555; padding: 3px 12px; min-height: 32px; font-size: .82rem; font-weight: 500; }
+.sidebar button.link:hover { background: rgba(255, 255, 255, .1); }
+.content { min-width: 0; background: #f4f4f5; min-height: 100vh; }
+.topbar { display: none; }
+.nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 0; background: transparent; color: #fff; border: 1px solid #444; border-radius: 8px; }
+.nav-toggle:hover { filter: none; background: rgba(255, 255, 255, .1); }
+.side-backdrop { display: none; }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .topbar { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 15; padding: 8px 12px; background: #161616; color: #fff; }
+  .topbar-name { font-weight: 600; font-size: .9rem; }
+  .sidebar { position: fixed; z-index: 30; left: 0; top: 0; bottom: 0; width: min(290px, 86vw); height: auto; transform: translateX(-100%); visibility: hidden; box-shadow: 6px 0 24px rgba(0, 0, 0, .35); }
+  .sidebar[data-open="true"] { transform: none; visibility: visible; }
+  .side-backdrop { display: block; position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, .45); }
+  .side-backdrop[hidden] { display: none; }
+}
+@media (max-width: 860px) and (prefers-reduced-motion: no-preference) {
+  .sidebar { transition: transform .2s ease, visibility 0s linear .2s; }
+  .sidebar[data-open="true"] { transition: transform .2s ease, visibility 0s; }
+}
 
 /* ---------- Cartões e avisos ---------- */
 .card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
@@ -320,7 +347,6 @@ button.kpi:hover .kpi-open, button.kpi:focus-visible .kpi-open { text-decoration
 
 @media (max-width: 480px) {
   main { padding: 16px 12px 40px; }
-  .topbar h1 { font-size: 1rem; }
   .fields { grid-template-columns: 1fr; gap: 2px; }
   .fields dd { margin-bottom: 8px; }
 }

@@ -28,7 +28,17 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     VIEWS.forEach((v) => { $(v).hidden = v !== view; });
   }
 
+  /** Menu lateral recolhível (celular): data-open no menu, aria-expanded no botão e fundo que fecha ao clicar. */
+  function setNav(open, focus) {
+    $('sidebar').setAttribute('data-open', String(open));
+    $('nav-toggle').setAttribute('aria-expanded', String(open));
+    $('sidebar-backdrop').hidden = !open;
+    if (open) $('tab-dashboard').focus();
+    else if (focus) $('nav-toggle').focus();
+  }
+
   function showTab(view) {
+    setNav(false, false);
     TABS.forEach(([name, tabId, viewId]) => {
       $(viewId).hidden = name !== view;
       if (name === view) $(tabId).setAttribute('aria-current', 'page');
@@ -75,6 +85,7 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     students.reset();
     mensalidades.reset();
     alunofull.reset();
+    setNav(false, false);
     $('tab-mensalidades').hidden = true;
     $('tab-alunofull').hidden = true;
     showTab('dashboard');
@@ -182,6 +193,7 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
 
   function start() {
     show('view-boot');
+    setNav(false, false);
     ACTIVITY_EVENTS.forEach((name) => doc.addEventListener(name, () => auth.touch()));
     doc.addEventListener('visibilitychange', () => { if (!doc.hidden) auth.checkIdle(); });
     $('login-form').addEventListener('submit', onLoginSubmit);
@@ -189,6 +201,9 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     $('tab-students').addEventListener('click', () => showTab('students'));
     $('tab-mensalidades').addEventListener('click', () => showTab('mensalidades'));
     $('tab-alunofull').addEventListener('click', () => showTab('alunofull'));
+    $('nav-toggle').addEventListener('click', () => setNav($('sidebar').getAttribute('data-open') !== 'true', true));
+    $('sidebar-backdrop').addEventListener('click', () => setNav(false, true));
+    doc.addEventListener('keydown', (e) => { if (e && e.key === 'Escape' && $('sidebar').getAttribute('data-open') === 'true') setNav(false, true); });
     $('logout').addEventListener('click', onLogout);
     $('session-logout').addEventListener('click', onLogout);
     $('session-retry').addEventListener('click', () => { loadSession(); });

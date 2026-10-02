@@ -21,7 +21,7 @@ const SAVE_ERROR = 'Não foi possível salvar. Tente novamente.';
 /** "2027-01" -> "01/2027"; vazio -> "—". */
 const paidUntil = (v) => (/^\d{4}-\d{2}$/.test(v) ? v.slice(5) + '/' + v.slice(0, 4) : '—');
 
-export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {} }) {
+export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {} }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
@@ -140,6 +140,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     const current = m ? m.tipo_isencao : '';
     setOptions($('af-f-isencao'), [['', 'Nenhuma']].concat(isencoes.concat(current && !isencoes.includes(current) ? [current] : []).map((v) => [v, v])), current);
     $('af-f-pago').value = m ? m.pago_ate : '';
+    $('af-open-pkg').hidden = !(m && m.status === 'Ativa' && !m.tipo_isencao); // pacote só para matrícula ativa e sem isenção
     $('af-dialog-hint').textContent = m ? 'Mudar o valor vale a partir das próximas cobranças: as já geradas não mudam (corrija em Mensalidades, se precisar).' : 'Este aluno ainda não tem matrícula: preencha o valor para criá-la.';
   }
 
@@ -430,6 +431,14 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     load();
   }
 
+  /** Recarrega a lista e mostra um aviso depois (usado quando o painel de pacote termina). */
+  async function refresh(notice) {
+    loaded = true;
+    setNotice('');
+    await load();
+    if (notice) setNotice(notice);
+  }
+
   /** Apaga tudo do usuário anterior e invalida respostas pendentes (troca ou saída de usuário). */
   function reset() {
     requestId += 1;
@@ -447,6 +456,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     $('af-error-ref').textContent = '';
     submitting = false;
     closeEditor(false);
+    closePackage();
     setNotice('');
     applyView();
     show('af-loading');
@@ -460,6 +470,12 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
   $('af-cancel').addEventListener('click', () => closeEditor());
   $('af-dialog-backdrop').addEventListener('click', () => closeEditor());
   $('af-open-student').addEventListener('click', () => { if (!dialog) return; const id = dialog.item.student_id; closeEditor(false); openStudent(id); });
+  $('af-open-pkg').addEventListener('click', () => {
+    if (!dialog) return;
+    const { item, opener } = dialog;
+    closeEditor(false);
+    openPackage({ item, opener, formas: (data && data.opcoes && data.opcoes.formas) || [] });
+  });
   $('af-f-modo').addEventListener('change', updateModeBoxes);
   $('af-f-ext').addEventListener('change', updateModeBoxes);
   $('af-f-aluno-q').addEventListener('input', () => { if (dialog) fillStudentOptions(dialog.item, $('af-f-aluno').value); });
@@ -468,5 +484,5 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
   table = buildTable();
   applyView();
 
-  return { activate, reset };
+  return { activate, reset, refresh };
 }

@@ -34,6 +34,8 @@ function setup(respond = () => ok(LIST())) {
   const press = (key) => (dom.docListeners.keydown || []).forEach((fn) => fn({ key }));
   return { dom, calls, auth, mens, rows, buttons, press };
 }
+const texts = (node) => [node._t, ...(node.children || []).flatMap(texts)].filter(Boolean);
+const allText = (node) => texts(node).join(' | ');
 const labels = (nodes) => nodes.map((b) => b.textContent);
 
 test('formatadores: moeda pt-BR e data dd/mm/aaaa', () => {
@@ -251,6 +253,33 @@ test('cancelar e estornar exigem motivo na janela e enviam o motivo', async () =
   dom.submit('mens-form');
   await flush();
   assert.deepEqual(calls.find((c) => c.acao === 'mensalidades.estornar').args, ['PAG-9', { motivo: 'PIX devolvido' }]);
+});
+
+test('parcela prevista de pacote: mostra a data prevista e cancela com motivo pelo servidor de pacotes', async () => {
+  const prevista = item({ status: 'Coberta por pacote', vencida: false, pagamento: { payment_id: 'PAG-7', data: '2026-10-10', forma: 'Crédito', valor: 33.33, status: 'Previsto' }, acoes: { registrar: false, editarVencimento: false, cancelar: true, estornar: false, cancelarPrevisto: true } });
+  const { dom, calls, mens, rows, buttons } = setup((acao) => (acao === 'mensalidades.listar' ? ok(LIST([prevista])) : ok({ payment_id: 'PAG-7', status: 'Cancelado' })));
+  mens.activate();
+  await flush();
+  assert.match(flat(allText(rows()[0])), /parcela prevista para 10\/10\/2026/);
+  const names = labels(buttons(0));
+  assert.ok(names.includes('Cancelar parcela'), names.join(','));
+  buttons(0)[names.indexOf('Cancelar parcela')].listeners.click();
+  assert.equal(dom.$('mens-dialog-title').textContent, 'Cancelar parcela prevista');
+  assert.equal(dom.$('mens-f-motivo-box').hidden, false);
+  assert.match(dom.$('mens-dialog-info').textContent, /Nada é apagado/);
+  dom.$('mens-f-motivo').value = 'cartão recusado';
+  dom.submit('mens-form');
+  await flush();
+  assert.deepEqual(calls.find((c) => c.acao === 'pacotes.cancelarPrevisto').args, ['PAG-7', { motivo: 'cartão recusado' }]);
+  assert.equal(dom.$('mens-dialog').hidden, true);
+  assert.equal(calls.filter((c) => c.acao === 'mensalidades.listar').length, 2, 'recarrega a lista');
+});
+
+test('sem a ação cancelarPrevisto o botão não aparece', async () => {
+  const { mens, buttons } = setup();
+  mens.activate();
+  await flush();
+  assert.ok(!labels(buttons(0)).includes('Cancelar parcela'));
 });
 
 test('editar vencimento: campo preenchido com o vencimento atual e envio da nova data', async () => {

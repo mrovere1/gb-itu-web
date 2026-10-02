@@ -2,7 +2,7 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=459aba66e2';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=5e7914f00d';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -126,6 +126,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     else if (item.status === 'Pendente') parts.push('sem vencimento');
     if (item.pagamento && item.pagamento.status === 'Confirmado') parts.push('pago em ' + dateBR(item.pagamento.data) + (item.pagamento.forma ? ' (' + item.pagamento.forma + ')' : ''));
     if (item.pagamento && item.pagamento.status === 'Estornado') parts.push('pagamento estornado');
+    if (item.pagamento && item.pagamento.status === 'Previsto') parts.push('parcela prevista para ' + dateBR(item.pagamento.data) + (typeof item.pagamento.valor === 'number' ? ' (' + money(item.pagamento.valor) + ')' : ''));
+    if (item.pagamento && item.pagamento.status === 'Cancelado') parts.push('parcela cancelada');
     main.appendChild(el('span', 'muted', parts.join(' · ')));
     const pend = pendingBlock(item);
     if (pend) main.appendChild(pend);
@@ -140,6 +142,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (item.acoes.editarVencimento) actions.appendChild(actionButton('Vencimento', 'vencimento', item));
     if (item.acoes.estornar) actions.appendChild(actionButton('Estornar', 'estornar', item));
     if (item.acoes.cancelar) actions.appendChild(actionButton('Cancelar', 'cancelar', item));
+    if (item.acoes.cancelarPrevisto) actions.appendChild(actionButton('Cancelar parcela', 'cancelarPrevisto', item));
     row.appendChild(actions);
     li.appendChild(row);
     return li;
@@ -197,10 +200,11 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     vencimento: ['mens-f-venc-box'],
     cancelar: ['mens-f-motivo-box'],
     estornar: ['mens-f-motivo-box'],
+    cancelarPrevisto: ['mens-f-motivo-box'],
     gerar: ['mens-f-gcomp-box'],
   };
-  const TITLES = { pagar: 'Registrar pagamento', vencimento: 'Editar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', gerar: 'Gerar cobranças do mês' };
-  const SUBMIT = { pagar: 'Registrar pagamento', vencimento: 'Salvar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', gerar: 'Gerar cobranças' };
+  const TITLES = { pagar: 'Registrar pagamento', vencimento: 'Editar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela prevista', gerar: 'Gerar cobranças do mês' };
+  const SUBMIT = { pagar: 'Registrar pagamento', vencimento: 'Salvar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela', gerar: 'Gerar cobranças' };
 
   function showDialogError(messages) {
     const box = $('mens-dialog-error');
@@ -215,6 +219,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (kind === 'vencimento') return item.nome + ' · competência ' + compBR(item.competencia) + ' · ' + money(item.valor);
     if (kind === 'cancelar') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') será marcada como cancelada. Nada é apagado.';
     if (kind === 'estornar') return 'O pagamento de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ') será marcado como estornado e a cobrança volta a pendente. Nada é apagado.';
+    if (kind === 'cancelarPrevisto') return 'A parcela prevista de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ', ' + compBR(item.competencia) + ') será cancelada e a cobrança volta a pendente. Nada é apagado.';
     return '';
   }
 
@@ -240,7 +245,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   }
 
   function focusFirst(kind) {
-    const first = { pagar: 'mens-f-data', vencimento: 'mens-f-venc', cancelar: 'mens-f-motivo', estornar: 'mens-f-motivo' }[kind];
+    const first = { pagar: 'mens-f-data', vencimento: 'mens-f-venc', cancelar: 'mens-f-motivo', estornar: 'mens-f-motivo', cancelarPrevisto: 'mens-f-motivo' }[kind];
     $(first).focus();
   }
 
@@ -313,6 +318,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (kind === 'vencimento') return ['mensalidades.editarVencimento', [item.charge_id, { versao: item.versao, vencimento: $('mens-f-venc').value }], 'Vencimento atualizado.'];
     if (kind === 'cancelar') return ['mensalidades.cancelar', [item.charge_id, { versao: item.versao, motivo: $('mens-f-motivo').value }], 'Cobrança cancelada.'];
     if (kind === 'estornar') return ['mensalidades.estornar', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Pagamento estornado.'];
+    if (kind === 'cancelarPrevisto') return ['pacotes.cancelarPrevisto', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Parcela prevista cancelada.'];
     return ['mensalidades.gerar', [{ competencia: $('mens-f-gcomp').value }], null];
   }
 

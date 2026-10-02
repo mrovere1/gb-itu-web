@@ -333,3 +333,51 @@ test('onAuthFailure dos Alunos encerra a sessão com a mensagem certa; sem sess�
   assert.deepEqual(dom.visible(VIEWS), ['view-login']);
   assert.match(dom.$('login-error').textContent, /não tem acesso/i);
 });
+
+// ---------- menu lateral (recolhível no celular) ----------
+async function signedIn() {
+  const s = setup();
+  s.app.start();
+  s.emit({ email: 'ana@exemplo.com' });
+  await flush();
+  return s;
+}
+const pressKey = (dom, key) => (dom.docListeners.keydown || []).forEach((fn) => fn({ key }));
+
+test('menu lateral: começa fechado; o botão abre, marca aria-expanded e mostra o fundo que fecha ao clicar', async () => {
+  const { dom } = await signedIn();
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false');
+  assert.equal(dom.$('nav-toggle').getAttribute('aria-expanded'), 'false');
+  assert.equal(dom.$('sidebar-backdrop').hidden, true);
+  dom.click('nav-toggle');
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'true');
+  assert.equal(dom.$('nav-toggle').getAttribute('aria-expanded'), 'true');
+  assert.equal(dom.$('sidebar-backdrop').hidden, false);
+  assert.ok(dom.$('tab-dashboard').focused > 0, 'o foco vai para o menu');
+  dom.click('sidebar-backdrop');
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false');
+  assert.equal(dom.$('sidebar-backdrop').hidden, true);
+});
+
+test('menu lateral: escolher uma seção fecha o menu; o botão alterna; Escape fecha e devolve o foco ao botão', async () => {
+  const { dom } = await signedIn();
+  dom.click('nav-toggle');
+  dom.click('tab-students');
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false');
+  dom.click('nav-toggle');
+  dom.click('nav-toggle');
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false', 'segundo clique fecha');
+  dom.click('nav-toggle');
+  const before = dom.$('nav-toggle').focused;
+  pressKey(dom, 'Escape');
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false');
+  assert.equal(dom.$('nav-toggle').focused, before + 1);
+});
+
+test('menu lateral: ao sair da conta o menu volta fechado', async () => {
+  const { dom, emit } = await signedIn();
+  dom.click('nav-toggle');
+  emit(null);
+  assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false');
+  assert.equal(dom.$('sidebar-backdrop').hidden, true);
+});
