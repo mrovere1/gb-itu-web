@@ -166,7 +166,7 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
           render: (a, td) => {
             const b = doc.createElement('button');
             b.type = 'button';
-            b.className = 'link dt-name';
+            b.className = 'dt-link';
             b.textContent = label(a);
             b.addEventListener('click', () => openDetail(a.student_id));
             td.appendChild(b);
@@ -181,8 +181,9 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
           render: (a, td) => {
             const b = doc.createElement('button');
             b.type = 'button';
-            b.className = 'secondary';
-            b.textContent = 'Abrir cadastro';
+            b.className = 'btn-soft btn-xs';
+            b.textContent = 'Abrir';
+            b.setAttribute('aria-label', 'Abrir cadastro de ' + label(a));
             b.addEventListener('click', () => openDetail(a.student_id));
             td.appendChild(b);
           } },
@@ -193,6 +194,7 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
   function applyView() {
     const t = view === 'table' && !!table;
     $('students-list').hidden = t;
+    $('students-count').hidden = t; // a tabela já mostra a contagem
     $('students-table-root').hidden = !t;
     $('students-views').hidden = !table;
     $('students-view-list').setAttribute('aria-pressed', String(!t));

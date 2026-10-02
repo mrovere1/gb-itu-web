@@ -380,11 +380,11 @@ test('alunos: filtros por coluna (lista, faixa numérica) e ordenação na tabel
   filters()[1].children[0].value = 'Ativo';
   filters()[1].children[0].listeners.change();
   assert.deepEqual(s.names(), ['Ana Ficticia', 'Carlos Ficticio']);
-  filters()[4].children[0].value = '18';
-  filters()[4].children[0].listeners.input();
+  filters()[4].children[0].children[0].value = '18';
+  filters()[4].children[0].children[0].listeners.input();
   assert.deepEqual(s.names(), ['Carlos Ficticio'], 'adultos ativos');
   s.tbl().children[0].children[0].children[4].children[0].listeners.click(); // idade: começa do maior
-  s.root.children[0].children[1].listeners.click(); // limpar filtros
+  s.root.children[0].children.find((b) => b.textContent === 'Limpar filtros').listeners.click();
   assert.deepEqual(s.names(), ['Carlos Ficticio', 'Bruno Ficticio (Bru)', 'Ana Ficticia']);
 });
 

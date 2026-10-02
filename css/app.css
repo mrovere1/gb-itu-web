@@ -212,7 +212,6 @@ button.kpi:hover { background: var(--tint); border-color: var(--line); }
 .dt-name:hover { background: transparent; text-decoration: underline; }
 .dt-filters th { position: sticky; top: 41px; background: var(--bg); z-index: 1; font-weight: 400; padding: 6px 8px; }
 .dt-filters input, .dt-filters select { min-height: 34px; padding: 4px 8px; font-size: .85rem; width: 100%; }
-.dt-filters input + input { margin-top: 4px; }
 .dt-num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ---------- Cartão clicável abre a área de trabalho ---------- */
@@ -325,3 +324,49 @@ button.kpi:hover .kpi-open, button.kpi:focus-visible .kpi-open { text-decoration
   .fields { grid-template-columns: 1fr; gap: 2px; }
   .fields dd { margin-bottom: 8px; }
 }
+
+/* ---------- Tabelas: visual suave (controles discretos, bordas finas, leitura leve) ---------- */
+.btn-soft { min-height: 32px; padding: 0 12px; font-size: .84rem; font-weight: 500; background: var(--bg); color: var(--ink); border: 1px solid #dedede; border-radius: 6px; box-shadow: none; }
+.btn-soft:hover { background: #f6f6f6; border-color: #cfcfcf; color: var(--ink); }
+.btn-soft[aria-pressed="true"], .btn-soft[aria-expanded="true"] { background: #f0f0f0; border-color: #bdbdbd; }
+.btn-soft:disabled { opacity: .45; cursor: not-allowed; }
+.btn-xs { min-height: 28px; padding: 0 10px; font-size: .8rem; }
+.btn-accent { color: var(--red); border-color: #ebc3bf; }
+.btn-accent:hover { background: #fdf3f2; border-color: #dba19b; color: var(--red-dark); }
+.btn-quiet { border-color: transparent; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.btn-quiet:hover { background: transparent; border-color: transparent; color: var(--ink); }
+.dt-bar { gap: 6px; margin-bottom: 10px; }
+.dt-bar .btn-soft { min-height: 32px; }
+.dt-picker { border-color: #ececec; border-radius: 10px; padding: 10px 14px; }
+.dt-link { background: none; border: 0; padding: 0; min-height: 0; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
+.dt-link:hover { background: none; color: var(--ink); text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
+.ws-views button { min-height: 32px; padding: 0 14px; font-size: .84rem; font-weight: 500; border-color: #dedede; background: var(--bg); color: var(--ink); }
+.ws-views button:hover { background: #f6f6f6; border-color: #cfcfcf; }
+.ws-views button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.ws-table-wrap { border-color: #ececec; border-radius: 10px; box-shadow: 0 1px 2px rgba(0, 0, 0, .03); }
+.ws-table { font-size: .88rem; }
+.ws-table th, .ws-table td { padding: 9px 14px; border-bottom: 1px solid #f1f1f1; }
+.ws-table thead th { background: #fff; color: #6b6b6b; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e6e6e6; }
+.ws-sort { font-size: inherit; font-weight: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; }
+.ws-sort:hover { color: var(--ink); }
+.ws-table tbody tr:last-child td { border-bottom: 0; }
+.ws-table tbody tr:hover { background: #fafafa; }
+.ws-table tbody td strong { font-weight: 600; }
+.ws-actions button, .ws-card-actions button { min-height: 28px; padding: 0 10px; font-size: .8rem; font-weight: 500; }
+.dt-filters th { top: 38px; background: #fcfcfc; text-transform: none; letter-spacing: 0; padding: 6px 10px; font-weight: 400; }
+.dt-filters input, .dt-filters select { min-height: 28px; height: 28px; padding: 0 8px; font-size: .8rem; border: 1px solid #e0e0e0; border-radius: 6px; width: 100%; margin: 0; }
+.dt-range { display: flex; gap: 4px; }
+.dt-range input { min-width: 62px; }
+.dt-filters input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.dt-filters input[type="number"]::-webkit-outer-spin-button, .dt-filters input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.ws-foot { font-weight: 600; font-size: .88rem; border-top: 1px solid #e6e6e6; }
+.chip { font-weight: 600; }
+
+/* Barra de busca e ações das telas de lista: mais discreta, numa só linha */
+.toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.toolbar > button:not(.btn-soft) { min-height: 36px; padding: 0 16px; font-size: .9rem; }
+.filters label { font-size: .8rem; color: var(--muted); font-weight: 600; }
+.filters input, .filters select { min-height: 38px; font-size: .92rem; }
+.filters > button { min-height: 38px; padding: 0 16px; font-size: .9rem; }
+.dt-range { align-items: center; }
+.dt-range input { height: 28px; margin: 0; }

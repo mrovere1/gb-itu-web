@@ -93,7 +93,7 @@ export function createWorkspace({ doc, openStudent = () => {}, openMensalidade =
     return n;
   }
   const button = (label, cls, onClick) => {
-    const b = el('button', cls || 'secondary', label);
+    const b = el('button', cls || 'btn-soft btn-xs', label);
     b.type = 'button';
     b.addEventListener('click', onClick);
     return b;
@@ -198,8 +198,8 @@ export function createWorkspace({ doc, openStudent = () => {}, openMensalidade =
   function rowActions(r) {
     const cfg = KINDS[state.kind];
     const cell = el('td', 'ws-actions');
-    cell.appendChild(button('Abrir cadastro', 'secondary', () => openStudent(r.student_id)));
-    if (cfg.mens) cell.appendChild(button('Ver em Mensalidades', 'secondary', () => openMensalidade({ competencia: r.competencia, busca: r.nome })));
+    cell.appendChild(button('Abrir cadastro', 'btn-soft btn-xs', () => openStudent(r.student_id)));
+    if (cfg.mens) cell.appendChild(button('Ver em Mensalidades', 'btn-soft btn-xs', () => openMensalidade({ competencia: r.competencia, busca: r.nome })));
     return cell;
   }
 
@@ -291,8 +291,8 @@ export function createWorkspace({ doc, openStudent = () => {}, openMensalidade =
         if (r.telefone) card.appendChild(el('span', 'muted', r.telefone));
         card.appendChild(el('span', 'ws-card-value', money(r.valor)));
         const actions = el('div', 'ws-card-actions');
-        actions.appendChild(button('Abrir cadastro', 'secondary', () => openStudent(r.student_id)));
-        actions.appendChild(button('Ver em Mensalidades', 'secondary', () => openMensalidade({ competencia: r.competencia, busca: r.nome })));
+        actions.appendChild(button('Abrir cadastro', 'btn-soft btn-xs', () => openStudent(r.student_id)));
+        actions.appendChild(button('Ver em Mensalidades', 'btn-soft btn-xs', () => openMensalidade({ competencia: r.competencia, busca: r.nome })));
         card.appendChild(actions);
         col.appendChild(card);
       });

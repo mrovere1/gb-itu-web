@@ -2,7 +2,7 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=2bce4732b2';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=63c864f3d0';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -393,10 +393,11 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
         { key: 'forma', label: 'Forma de pagamento', type: 'text', value: (i) => (paidOn(i) ? paidOn(i).forma : ''), filter: 'select', defaultVisible: false },
         { key: 'acoes', label: 'Ações', locked: true, value: () => '',
           render: (i, td) => {
-            if (i.acoes.registrar) td.appendChild(actionButton('Pagar', 'pagar', i, ''));
-            if (i.acoes.editarVencimento) td.appendChild(actionButton('Vencimento', 'vencimento', i));
-            if (i.acoes.estornar) td.appendChild(actionButton('Estornar', 'estornar', i));
-            if (i.acoes.cancelar) td.appendChild(actionButton('Cancelar', 'cancelar', i));
+            const soft = 'btn-soft btn-xs';
+            if (i.acoes.registrar) td.appendChild(actionButton('Pagar', 'pagar', i, soft + ' btn-accent'));
+            if (i.acoes.editarVencimento) td.appendChild(actionButton('Vencimento', 'vencimento', i, soft));
+            if (i.acoes.estornar) td.appendChild(actionButton('Estornar', 'estornar', i, soft));
+            if (i.acoes.cancelar) td.appendChild(actionButton('Cancelar', 'cancelar', i, soft));
           } },
       ],
     });
@@ -405,6 +406,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   function applyView() {
     const t = view === 'table' && !!table;
     $('mens-list').hidden = t;
+    $('mens-count').hidden = t; // a tabela já mostra a contagem
     $('mens-table-root').hidden = !t;
     $('mens-views').hidden = !table;
     $('mens-view-cards').setAttribute('aria-pressed', String(!t));

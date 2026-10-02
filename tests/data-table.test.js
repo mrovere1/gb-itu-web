@@ -35,6 +35,8 @@ function setup({ storage = memory(), columns = COLUMNS, rows = ROWS } = {}) {
   const q = {
     bar: () => root.children[0], picker: () => root.children[1], table: () => root.children[2].children[0],
     head: () => q.table().children[0].children[0].children, filters: () => q.table().children[0].children[1].children,
+    filterRow: () => q.table().children[0].children[1],
+    inputs: (i) => { const th = q.filters()[i]; return th.children[0] && th.children[0].className === 'dt-range' ? th.children[0].children : th.children; },
     rows: () => q.table().children[1].children, empty: () => root.children[3], foot: () => root.children[4],
     names: () => q.rows().map((tr) => tr.children[0].textContent),
     headers: () => q.head().map((th) => (th.children[0] ? th.children[0].textContent : th.textContent).replace(/ [▲▼]$/, '')),
@@ -82,14 +84,14 @@ test('ordenar: clique alterna crescente/decrescente, anuncia aria-sort, número 
 
 test('filtro de texto (sem acento), lista, faixa numérica e período; contagem e limpar', () => {
   const { q } = setup();
-  const filterOf = (i) => q.filters()[i].children;
+  const filterOf = (i) => q.inputs(i);
   filterOf(0)[0].value = 'erica';
   filterOf(0)[0].listeners.input();
   assert.deepEqual(q.names(), ['Érica Dias']);
-  assert.equal(q.btn('Limpar filtros').disabled, false);
+  assert.equal(q.btn('Limpar filtros').hidden, false);
   q.btn('Limpar filtros').listeners.click();
   assert.equal(q.rows().length, 4);
-  assert.equal(q.btn('Limpar filtros').disabled, true);
+  assert.equal(q.btn('Limpar filtros').hidden, true);
 
   assert.deepEqual(filterOf(1)[0].options.map((o) => o.value), ['', 'Paga', 'Pendente']);
   filterOf(1)[0].value = 'Pendente';
@@ -106,9 +108,37 @@ test('filtro de texto (sem acento), lista, faixa numérica e período; contagem 
   assert.equal(q.btn('Exportar planilha (CSV)').disabled, true);
 });
 
+test('filtros ficam recolhidos; o botão Filtros abre, mostra quantos estão ativos e Limpar só aparece quando há filtro', () => {
+  const { q } = setup();
+  assert.equal(q.filterRow().hidden, true);
+  assert.equal(q.btn('Limpar filtros').hidden, true);
+  q.btn('Filtros').listeners.click();
+  assert.equal(q.filterRow().hidden, false);
+  assert.equal(q.btn('Filtros').getAttribute('aria-expanded'), 'true');
+  q.inputs(0)[0].value = 'ana';
+  q.inputs(0)[0].listeners.input();
+  q.inputs(1)[0].value = 'Paga';
+  q.inputs(1)[0].listeners.change();
+  assert.equal(q.btn('Filtros · 2').textContent, 'Filtros · 2');
+  assert.equal(q.btn('Limpar filtros').hidden, false);
+  q.btn('Filtros · 2').listeners.click();
+  assert.equal(q.filterRow().hidden, false, 'com filtro ativo a linha não se esconde');
+  q.btn('Limpar filtros').listeners.click();
+  assert.equal(q.btn('Filtros').getAttribute('aria-expanded'), 'true', 'continua aberta para novos filtros');
+  assert.equal(q.btn('Limpar filtros').hidden, true);
+});
+
+test('faixa e período ficam num par compacto de campos, com rótulos acessíveis', () => {
+  const { q } = setup();
+  const th = q.filters()[2];
+  assert.equal(th.children[0].className, 'dt-range');
+  assert.deepEqual(th.children[0].children.map((i) => i.getAttribute('aria-label')), ['Filtrar Valor mín.', 'Filtrar Valor máx.']);
+  assert.deepEqual(q.filters()[4].children[0].children.map((i) => i.getAttribute('aria-label')), ['Filtrar Vencimento de', 'Filtrar Vencimento até']);
+});
+
 test('filtro por período usa data inicial e final', () => {
   const { q } = setup();
-  const f = q.filters()[4].children;
+  const f = q.inputs(4);
   f[0].value = '2026-09-01';
   f[0].listeners.input();
   assert.deepEqual(q.names(), ['Ana Souza', 'Érica Dias']);
@@ -120,10 +150,10 @@ test('filtro por período usa data inicial e final', () => {
 test('rodapé: contagem e total da primeira coluna de dinheiro visível, sobre as linhas filtradas', () => {
   const { q } = setup();
   assert.equal(flat(q.foot().textContent), '4 registros · Valor: R$ 630,00');
-  q.filters()[1].children[0].value = 'Paga';
-  q.filters()[1].children[0].listeners.change();
+  q.inputs(1)[0].value = 'Paga';
+  q.inputs(1)[0].listeners.change();
   assert.equal(flat(q.foot().textContent), '2 de 4 registros · Valor: R$ 250,00');
-  assert.equal(q.bar().children[3].textContent, '2 de 4 registros');
+  assert.equal(q.bar().children[q.bar().children.length - 1].textContent, '2 de 4 registros');
 });
 
 test('seletor de colunas: abrir, esconder, reordenar com setas, restaurar; preferências salvas só com as chaves', () => {
@@ -176,8 +206,8 @@ test('sempre sobra ao menos uma coluna visível', () => {
 
 test('exportar CSV: colunas visíveis (sem Ações), linhas filtradas e ordenadas, BOM, ponto e vírgula e vírgula decimal', () => {
   const { q, files } = setup();
-  q.filters()[1].children[0].value = 'Pendente';
-  q.filters()[1].children[0].listeners.change();
+  q.inputs(1)[0].value = 'Pendente';
+  q.inputs(1)[0].listeners.change();
   q.btn('Exportar planilha (CSV)').listeners.click();
   assert.equal(files[0].name, 'teste.csv');
   assert.deepEqual(files[0].text.split('\r\n').slice(0, 3), ['﻿Aluno;Status;Valor;Meses;Vencimento', 'Bruno Lima;Pendente;200,00;3;10/08/2026', 'Érica Dias;Pendente;180,00;1;28/09/2026']);
@@ -192,8 +222,8 @@ test('célula personalizada (botão de ação) é desenhada por linha; texto dos
 
 test('reset limpa linhas, filtros, ordem e o seletor; setRows refaz a lista', () => {
   const { q, t } = setup();
-  q.filters()[0].children[0].value = 'ana';
-  q.filters()[0].children[0].listeners.input();
+  q.inputs(0)[0].value = 'ana';
+  q.inputs(0)[0].listeners.input();
   t.reset();
   assert.equal(q.rows().length, 0);
   assert.equal(t.state().total, 0);

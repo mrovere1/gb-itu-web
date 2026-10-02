@@ -31,6 +31,7 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
   let sort = defaultSort ? { key: defaultSort[0], dir: defaultSort[1] } : null;
   let filters = {};
   let pickerOpen = false;
+  let filtersOpen = false;
   let parts = null; // referências aos pedaços da tela
 
   // ---------- preferências ----------
@@ -59,7 +60,7 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
     return n;
   }
   function button(label, cls, onClick, aria) {
-    const b = el('button', cls || 'secondary', label);
+    const b = el('button', cls || 'btn-soft', label);
     b.type = 'button';
     if (aria) b.setAttribute('aria-label', aria);
     b.addEventListener('click', onClick);
@@ -119,7 +120,9 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
     });
   }
 
-  const hasFilters = () => Object.keys(filters).some((k) => Object.values(filters[k]).some((v) => v !== '' && v != null));
+  const isActive = (f) => !!f && Object.values(f).some((v) => v !== '' && v != null);
+  const activeFilterCount = () => Object.keys(filters).filter((k) => isActive(filters[k])).length;
+  const hasFilters = () => activeFilterCount() > 0;
 
   // ---------- estrutura ----------
   function buildPicker() {
@@ -150,8 +153,8 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
       if (shown.includes(key)) {
         const i = order.indexOf(key);
         const move = (d) => { const j = i + d; if (j < 0 || j >= order.length) return; const next = order.slice(); next.splice(i, 1); next.splice(j, 0, key); order = next; savePrefs(); rebuild(); };
-        const up = button('↑', 'secondary dt-move', () => move(-1), 'Mover ' + col.label + ' para antes');
-        const down = button('↓', 'secondary dt-move', () => move(1), 'Mover ' + col.label + ' para depois');
+        const up = button('↑', 'btn-soft btn-xs dt-move', () => move(-1), 'Mover ' + col.label + ' para antes');
+        const down = button('↓', 'btn-soft btn-xs dt-move', () => move(1), 'Mover ' + col.label + ' para depois');
         up.disabled = i === 0;
         down.disabled = i === order.length - 1;
         li.appendChild(up);
@@ -160,7 +163,7 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
       ul.appendChild(li);
     });
     panel.appendChild(ul);
-    panel.appendChild(button('Restaurar colunas padrão', 'secondary', () => { order = defaultOrder.slice(); savePrefs(); rebuild(); }));
+    panel.appendChild(button('Restaurar colunas padrão', 'btn-soft', () => { order = defaultOrder.slice(); savePrefs(); rebuild(); }));
     return panel;
   }
 
@@ -186,12 +189,14 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
       td.appendChild(s);
     } else if (col.filter === 'range' || col.filter === 'date') {
       const isDate = col.filter === 'date';
+      const pair = el('div', 'dt-range');
+      td.appendChild(pair);
       [[isDate ? 'from' : 'min', isDate ? 'de' : 'mín.'], [isDate ? 'to' : 'max', isDate ? 'até' : 'máx.']].forEach(([key, hint]) => {
         const i = doc.createElement('input');
         i.type = isDate ? 'date' : 'number'; if (!isDate) i.step = 'any';
         i.value = f[key] || ''; i.setAttribute('aria-label', labelOf(hint)); i.placeholder = hint;
         i.addEventListener('input', () => set({ [key]: i.value }));
-        td.appendChild(i);
+        pair.appendChild(i);
       });
     }
     return td;
@@ -221,13 +226,18 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
     const cols = visibleCols();
 
     const bar = el('div', 'dt-bar');
-    const pickerBtn = button('Colunas', 'secondary', () => { pickerOpen = !pickerOpen; rebuild(); parts.pickerBtn.focus(); });
+    const pickerBtn = button('Colunas', 'btn-soft', () => { pickerOpen = !pickerOpen; rebuild(); parts.pickerBtn.focus(); });
     pickerBtn.setAttribute('aria-expanded', String(pickerOpen));
     parts.pickerBtn = pickerBtn;
     bar.appendChild(pickerBtn);
-    parts.clear = button('Limpar filtros', 'secondary', () => { filters = {}; rebuild(); });
+    const active = activeFilterCount();
+    const filtersBtn = button('Filtros' + (active ? ' · ' + active : ''), 'btn-soft', () => { filtersOpen = hasFilters() ? true : !filtersOpen; rebuild(); parts.filtersBtn.focus(); });
+    filtersBtn.setAttribute('aria-expanded', String(filtersOpen || active > 0));
+    parts.filtersBtn = filtersBtn;
+    bar.appendChild(filtersBtn);
+    parts.clear = button('Limpar filtros', 'btn-soft btn-quiet', () => { filters = {}; rebuild(); });
     bar.appendChild(parts.clear);
-    parts.exportBtn = button('Exportar planilha (CSV)', 'secondary', exportCsv);
+    parts.exportBtn = button('Exportar planilha (CSV)', 'btn-soft', exportCsv);
     bar.appendChild(parts.exportBtn);
     parts.count = el('span', 'muted dt-count');
     parts.count.setAttribute('role', 'status');
@@ -245,6 +255,7 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
     const filterRow = el('tr', 'dt-filters');
     cols.forEach((c) => filterRow.appendChild(filterControl(c)));
     thead.appendChild(filterRow);
+    filterRow.hidden = !(filtersOpen || hasFilters());
     parts.filterRow = filterRow;
     table.appendChild(thead);
     parts.tbody = doc.createElement('tbody');
@@ -275,7 +286,10 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
     });
     parts.empty.hidden = list.length > 0;
     parts.exportBtn.disabled = list.length === 0;
-    parts.clear.disabled = !hasFilters();
+    parts.clear.hidden = !hasFilters();
+    const active = activeFilterCount();
+    parts.filtersBtn.textContent = 'Filtros' + (active ? ' · ' + active : '');
+    parts.filtersBtn.setAttribute('aria-expanded', String(filtersOpen || active > 0));
     const label = list.length === rows.length ? list.length + ' registros' : list.length + ' de ' + rows.length + ' registros';
     parts.count.textContent = label;
     const money = cols.find((c) => c.type === 'money');
@@ -294,7 +308,7 @@ export function createDataTable({ doc, root, tableId, columns, storage = null, d
 
   return {
     setRows(next) { rows = Array.isArray(next) ? next : []; rebuild(); },
-    reset() { rows = []; filters = {}; sort = defaultSort ? { key: defaultSort[0], dir: defaultSort[1] } : null; pickerOpen = false; rebuild(); },
+    reset() { rows = []; filters = {}; sort = defaultSort ? { key: defaultSort[0], dir: defaultSort[1] } : null; pickerOpen = false; filtersOpen = false; rebuild(); },
     state: () => ({ order: order.slice(), sort: sort && { ...sort }, filters: JSON.parse(JSON.stringify(filters)), shown: visibleRows().length, total: rows.length }),
   };
 }

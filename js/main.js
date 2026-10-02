@@ -1,14 +1,14 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=2bce4732b2';
-import { loadFirebase } from './firebase.js?v=2bce4732b2';
-import { createApi } from './api.js?v=2bce4732b2';
-import { createAuth } from './auth.js?v=2bce4732b2';
-import { createDashboard } from './dashboard.js?v=2bce4732b2';
-import { createStudentForm } from './student-form.js?v=2bce4732b2';
-import { createStudents } from './students.js?v=2bce4732b2';
-import { createMensalidades } from './mensalidades.js?v=2bce4732b2';
-import { createDataTable } from './data-table.js?v=2bce4732b2';
-import { createApp } from './app.js?v=2bce4732b2';
+import { CONFIG } from './config.js?v=63c864f3d0';
+import { loadFirebase } from './firebase.js?v=63c864f3d0';
+import { createApi } from './api.js?v=63c864f3d0';
+import { createAuth } from './auth.js?v=63c864f3d0';
+import { createDashboard } from './dashboard.js?v=63c864f3d0';
+import { createStudentForm } from './student-form.js?v=63c864f3d0';
+import { createStudents } from './students.js?v=63c864f3d0';
+import { createMensalidades } from './mensalidades.js?v=63c864f3d0';
+import { createDataTable } from './data-table.js?v=63c864f3d0';
+import { createApp } from './app.js?v=63c864f3d0';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
