@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=1137cff686" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=1137cff686">
-    <script src="js/framebust.js?v=1137cff686"></script>
+    <link rel="icon" href="img/icone.png?v=5ad36c9cdc" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=5ad36c9cdc">
+    <script src="js/framebust.js?v=5ad36c9cdc"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=1137cff686" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=5ad36c9cdc" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -51,7 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
-        <img class="brand" src="img/icone.png?v=1137cff686" alt="" width="256" height="191">
+        <img class="brand" src="img/icone.png?v=5ad36c9cdc" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -202,6 +202,10 @@
             <button type="submit">Buscar</button>
             <button id="mens-refresh" type="button" class="secondary">Atualizar</button>
             <button id="mens-generate" type="button" class="secondary" hidden>Gerar cobranças do mês</button>
+            <div id="mens-views" class="ws-views" role="group" aria-label="Visualização" hidden>
+              <button id="mens-view-cards" type="button" class="secondary" aria-pressed="true">Cartões</button>
+              <button id="mens-view-table" type="button" class="secondary" aria-pressed="false">Tabela</button>
+            </div>
           </form>
 
           <p id="mens-notice" class="success" role="status" hidden></p>
@@ -224,6 +228,7 @@
             <p class="muted" id="mens-count" role="status" aria-live="polite"></p>
             <p id="mens-truncated" class="muted" hidden>Mostrando as primeiras 500 cobranças. Use a busca ou o filtro de status para ver as demais.</p>
             <ul id="mens-list" class="mens-list"></ul>
+            <div id="mens-table-root" class="dt-root" hidden></div>
           </div>
         </div>
 
@@ -286,6 +291,10 @@
 
         <div class="toolbar">
           <button id="students-new" type="button" hidden>Novo aluno</button>
+          <div id="students-views" class="ws-views" role="group" aria-label="Visualização" hidden>
+            <button id="students-view-list" type="button" class="secondary" aria-pressed="true">Lista</button>
+            <button id="students-view-table" type="button" class="secondary" aria-pressed="false">Tabela</button>
+          </div>
         </div>
 
         <section id="students-loading" class="card" role="status" aria-live="polite" hidden>
@@ -303,6 +312,7 @@
         <div id="students-ready" hidden>
           <p class="muted" id="students-count" role="status" aria-live="polite"></p>
           <ul id="students-list" class="student-list"></ul>
+          <div id="students-table-root" class="dt-root" hidden></div>
         </div>
 
         <section id="student-form-section" class="card" hidden>
@@ -413,6 +423,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=1137cff686"></script>
+    <script type="module" src="js/main.js?v=5ad36c9cdc"></script>
   </body>
 </html>

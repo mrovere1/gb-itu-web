@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMensalidades, money, dateBR } from '../js/mensalidades.js';
+import { createMensalidades, money, dateBR, monthLabel } from '../js/mensalidades.js';
+import { createDataTable } from '../js/data-table.js';
 import { createApp } from '../js/app.js';
 import { createDom, flush } from './helpers/dom-env.js';
 
@@ -15,7 +16,8 @@ const item = (over = {}) => ({
   status: 'Pendente', versao: 'v1', pagamento: null, acoes: ACOES_TODAS, ...over,
 });
 const LIST = (itens = [item()], over = {}) => ({
-  competencia: '2026-09', itens, total: itens.length, totais: { cobrancas: itens.length, previsto: 550, pago: 200, pendente: 250, vencido: 250 },
+  competencia: '2026-09', competenciaAnterior: '2026-08', itens, total: itens.length, totais: { cobrancas: itens.length, previsto: 550, pago: 200, pendente: 250, vencido: 250 },
+  totaisAnterior: { cobrancas: 3, previsto: 500, pago: 400, pendente: 200, vencido: 0 },
   porStatus: { Pendente: 1 }, permissoes: { registrar: true, cancelar: true, gerar: true },
   opcoes: { formas: ['PIX', 'Débito', 'Crédito', 'Dinheiro', 'Misto'], contas: ['PF', 'PJ'], status: ['Paga', 'Pendente', 'Coberta por pacote', 'Isenta', 'Suspensa', 'Cancelada'] },
   hoje: '2026-09-30', ...over,
@@ -93,7 +95,7 @@ test('totais da competência e estado vazio', async () => {
   a.mens.activate();
   await flush();
   assert.deepEqual(a.dom.$('mens-totals').children.map((c) => c.children[0].textContent), ['Previsto', 'Pago', 'Pendente', 'Vencido']);
-  assert.equal(flat(a.dom.$('mens-totals').children[2].children[1].textContent), 'R$ 250,00');
+  assert.equal(flat(a.dom.$('mens-totals').children[2].children[1].children[0].textContent), 'R$ 250,00');
   const b = setup(() => ok(LIST([])));
   b.mens.activate();
   await flush();
@@ -112,6 +114,21 @@ test('openWith abre a lista já na competência e com a busca pedida e não reca
   await flush();
   assert.equal(calls[1].args[0].competencia, '2026-08', 'competência inválida é ignorada');
   assert.equal(calls[1].args[0].busca.length, 60);
+});
+
+test('totais: mês atual em destaque, mês anterior menor no mesmo cartão e chip conforme o sentido (pago subir é bom, pendente subir é ruim)', async () => {
+  const { dom, mens } = setup();
+  mens.activate();
+  await flush();
+  const cards = dom.$('mens-totals').children;
+  const read = (c) => ({ label: c.children[0].textContent, value: flat(c.children[1].children[0].textContent), chip: c.children[1].children[1] ? c.children[1].children[1].textContent : null, tone: c.children[1].children[1] ? c.children[1].children[1].className : null, prev: flat(c.children[2].textContent), cls: c.className });
+  assert.deepEqual(read(cards[0]), { label: 'Previsto', value: 'R$ 550,00', chip: '+10,0%', tone: 'delta delta-good', prev: 'ago/26: R$ 500,00', cls: 'total-card total-good' });
+  assert.deepEqual(read(cards[1]), { label: 'Pago', value: 'R$ 200,00', chip: '−50,0%', tone: 'delta delta-bad', prev: 'ago/26: R$ 400,00', cls: 'total-card total-bad' });
+  assert.deepEqual(read(cards[2]), { label: 'Pendente', value: 'R$ 250,00', chip: '+25,0%', tone: 'delta delta-bad', prev: 'ago/26: R$ 200,00', cls: 'total-card total-bad' });
+  const vencido = read(cards[3]);
+  assert.equal(vencido.chip, null, 'mês anterior sem vencido: sem base para variação');
+  assert.equal(vencido.prev, 'ago/26: R$ 0,00');
+  assert.equal(vencido.cls, 'total-card');
 });
 
 test('filtros: buscar, status e competência recarregam; competência inválida é ignorada', async () => {
@@ -418,4 +435,117 @@ test('ao sair, a aba some e a tela é limpa', async () => {
   await flush();
   assert.equal(dom.$('tab-mensalidades').hidden, true);
   assert.ok(events.includes('reset'));
+});
+
+// ---------- pendências do aluno, visão em tabela ----------
+const P = (comp, valor = 250, vencida = true) => ({ competencia: comp, vencimento: comp + '-10', valor, vencida });
+const withPend = (over = {}) => item({ pendencias: [P('2026-07'), P('2026-08'), P('2026-09')], pendenciasValor: 750, pendenciasAnteriores: 2, pendenciasAnterioresValor: 500, ...over });
+const pendBlock = (rows) => rows()[0].children[0].children[0].children[2];
+
+test('monthLabel abrevia a competência', () => {
+  assert.equal(monthLabel('2026-07'), 'jul/26');
+  assert.equal(monthLabel('2027-01'), 'jan/27');
+});
+
+test('aluno com pendência mostra TODOS os meses pendentes (também os anteriores) e quanto está atrasado antes do mês filtrado', async () => {
+  const { rows, mens } = setup(() => ok(LIST([withPend()])));
+  mens.activate();
+  await flush();
+  const block = pendBlock(rows);
+  assert.equal(block.className, 'mens-pend');
+  assert.equal(block.children[0].textContent, 'Pendências:');
+  assert.deepEqual(block.children.slice(1, 4).map((c) => c.textContent), ['jul/26', 'ago/26', 'set/26']);
+  assert.ok(block.children.slice(1, 4).every((c) => /chip-vencida/.test(c.className)));
+  assert.equal(block.children[3].getAttribute('aria-current'), 'true', 'o mês que está na tela fica marcado');
+  assert.equal(block.children[1].getAttribute('aria-current'), null);
+  assert.equal(flat(block.children[4].textContent), '2 meses anteriores em aberto · R$ 500,00');
+});
+
+test('clicar num mês pendente abre aquele mês já filtrado pelo aluno', async () => {
+  const { dom, calls, rows, mens } = setup((a, args) => ok(LIST([withPend()], { competencia: args[0].competencia || '2026-09' })));
+  mens.activate();
+  await flush();
+  pendBlock(rows).children[1].listeners.click();
+  await flush();
+  assert.deepEqual(calls[1].args[0], { competencia: '2026-07', busca: 'Ana Ficticia', status: '' });
+  assert.equal(dom.$('mens-q').value, 'Ana Ficticia');
+});
+
+test('aluno com a cobrança paga mas com outros meses pendentes: "Outros meses pendentes"; sem pendência: nenhum bloco; um mês só no singular', async () => {
+  const paid = withPend({ status: 'Paga', vencida: false, acoes: { registrar: false, editarVencimento: false, cancelar: false, estornar: false }, pendencias: [P('2026-08')], pendenciasAnteriores: 1, pendenciasAnterioresValor: 250 });
+  const a = setup(() => ok(LIST([paid])));
+  a.mens.activate();
+  await flush();
+  assert.equal(pendBlock(a.rows).children[0].textContent, 'Outros meses pendentes:');
+  assert.equal(flat(pendBlock(a.rows).children[2].textContent), '1 mês anterior em aberto · R$ 250,00');
+  const none = setup(() => ok(LIST([item({ pendencias: [], pendenciasAnteriores: 0 })])));
+  none.mens.activate();
+  await flush();
+  assert.equal(none.rows()[0].children[0].children[0].children.length, 2, 'só nome e vencimento');
+});
+
+function tableSetup(respond = () => ok(LIST([withPend(), item({ charge_id: 'COB-2', student_id: 'ALU-2', nome: 'Bruno Ficticio', status: 'Paga', vencida: false, valor: 200, pendencias: [], pendenciasAnteriores: 0, pagamento: { payment_id: 'P2', data: '2026-09-12', forma: 'PIX', valor: 200, status: 'Confirmado' }, acoes: { registrar: false, editarVencimento: false, cancelar: false, estornar: true } })]))) {
+  const dom = createDom();
+  const calls = [];
+  const files = [];
+  const api = { call: async (acao, args) => { calls.push({ acao, args }); return respond(acao, args, calls.length); } };
+  const createTable = (opts) => createDataTable({ doc: dom.doc, storage: null, download: (n, t) => files.push({ n, t }), ...opts });
+  const mens = createMensalidades({ doc: dom.doc, api, createTable });
+  const root = dom.$('mens-table-root');
+  const tbl = () => root.children[2].children[0];
+  const names = () => tbl().children[1].children.map((tr) => tr.children[0].textContent);
+  return { dom, calls, files, mens, root, tbl, names };
+}
+
+test('alternar Cartões ⇄ Tabela: a tabela usa os mesmos dados, com colunas de pendência e ações por linha', async () => {
+  const s = tableSetup();
+  s.mens.activate();
+  await flush();
+  assert.equal(s.dom.$('mens-views').hidden, false);
+  assert.equal(s.dom.$('mens-list').hidden, false);
+  assert.equal(s.dom.$('mens-table-root').hidden, true);
+  s.dom.click('mens-view-table');
+  assert.equal(s.dom.$('mens-list').hidden, true);
+  assert.equal(s.dom.$('mens-table-root').hidden, false);
+  assert.equal(s.dom.$('mens-view-table').getAttribute('aria-pressed'), 'true');
+  const heads = s.tbl().children[0].children[0].children.map((th) => (th.children[0] ? th.children[0].textContent : th.textContent).replace(/ [▲▼]$/, ''));
+  assert.deepEqual(heads, ['Aluno', 'Vencimento', 'Valor', 'Status', 'Meses pendentes', 'Meses anteriores em aberto', 'Em aberto do aluno', 'Ações']);
+  assert.deepEqual(s.names(), ['Ana Ficticia', 'Bruno Ficticio']);
+  const ana = s.tbl().children[1].children[0].children;
+  assert.equal(ana[4].textContent, 'jul/26, ago/26, set/26');
+  assert.equal(ana[5].textContent, '2');
+  assert.equal(flat(ana[6].textContent), 'R$ 750,00');
+  s.dom.click('mens-view-cards');
+  assert.equal(s.dom.$('mens-list').hidden, false);
+});
+
+test('tabela: botão de ação da linha abre a mesma janela de operação; filtro por status funciona', async () => {
+  const s = tableSetup();
+  s.mens.activate();
+  await flush();
+  s.dom.click('mens-view-table');
+  const actions = s.tbl().children[1].children[0].children[7].children;
+  assert.deepEqual(actions.map((b) => b.textContent), ['Pagar', 'Vencimento', 'Cancelar']);
+  actions[0].listeners.click();
+  assert.equal(s.dom.$('mens-dialog').hidden, false);
+  assert.equal(s.dom.$('mens-dialog-title').textContent, 'Registrar pagamento');
+  s.dom.click('mens-cancel');
+  const statusFilter = s.tbl().children[0].children[1].children[3].children[0];
+  statusFilter.value = 'Paga';
+  statusFilter.listeners.change();
+  assert.deepEqual(s.names(), ['Bruno Ficticio']);
+});
+
+test('sem createTable não há alternância e a lista de cartões continua sendo a única visão; reset volta aos cartões', async () => {
+  const plain = setup();
+  plain.mens.activate();
+  await flush();
+  assert.equal(plain.dom.$('mens-views').hidden, true);
+  const s = tableSetup();
+  s.mens.activate();
+  await flush();
+  s.dom.click('mens-view-table');
+  s.mens.reset();
+  assert.equal(s.dom.$('mens-table-root').hidden, true);
+  assert.equal(s.dom.$('mens-view-cards').getAttribute('aria-pressed'), 'true');
 });

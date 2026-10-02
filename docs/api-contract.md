@@ -88,6 +88,8 @@ quando há lançamento).
 | Alunos pagantes | Alunos `Ativo` com `valor_contratado` > 0 e sem `tipo_isencao`. |
 | Gráfico | Últimos 6 meses até a competência: prevista e recebida (`meses[]`), variação do recebido sobre o mês anterior (`variacao`, %) e a composição do mês (`mes`: `previsto`, `recebido`, `pacote`, `aVencer`, `emAberto`; `null` em mês sem lançamento). O portal desenha o anel (recebido ÷ previsto), a lista da composição e as colunas comparativas. |
 
+Cartões com comparação (`receitaPrevista`, `receitaRecebida`, `novasMatriculas`) trazem `delta` (`pct` e `sentido`: `alta-boa` ou `alta-ma`, que diz se subir é bom ou ruim) e `anterior` (`rotulo` do mês e `valor`), que o portal desenha como chip ao lado do valor e linha do período anterior; sem base anterior (zero) não há `delta`.
+
 Campos novos na resposta completa: `avisos[]` (problemas de qualidade dos dados), `aniversariantesEstado` (`ok` ou `sem_datas`),
 `graficos.receitaPrevistaRecebida.meses[]` e, em `detalhes`, as listas `inadimplentes`, `contasAVencer` (`info`: competência, vencimento, valor e, só em
 inadimplentes, telefone) e `receitaRecebida` (data, valor, forma). Valores em reais como número, datas `AAAA-MM-DD`; o portal formata em pt-BR.
@@ -97,6 +99,7 @@ inadimplentes, telefone) e `receitaRecebida` (data, valor, forma). Valores em re
 Perfis: ver = Administrador, Gestor e Financeiro; registrar pagamento, editar vencimento e gerar cobranças = Administrador e Financeiro; cancelar e estornar = Administrador.
 
 - `mensalidades.listar`: cobranças da competência (padrão: mês atual) com `itens[]` (`charge_id`, `nome`, `vencimento`, `vencida`, `valor`, `status`, `versao`, `pagamento`, `acoes`), `totais` (previsto, pago, pendente, vencido), `porStatus`, `permissoes` e `opcoes`. Até 500 itens; `total` informa quantos existem.
+- Cada item traz as **pendências do aluno em todas as competências** (`pendencias[]` com `competencia`, `vencimento`, `valor`, `vencida`; `pendenciasValor`, `pendenciasAnteriores` e `pendenciasAnterioresValor`, que contam só os meses antes da competência filtrada), para que a lista de um mês mostre também os meses atrasados anteriores. A resposta traz ainda `competenciaAnterior` e `totaisAnterior` (mesma estrutura de `totais`) para comparar com o mês anterior no mesmo cartão.
 - Escritas devolvem o item atualizado. `versao` (concorrência otimista) é obrigatória em registrar pagamento, editar vencimento e cancelar; `VERSAO_DESATUALIZADA` pede para recarregar.
 - **Pagamento é sempre integral**: o valor é o da cobrança (um `valor` diferente é recusado). A data não pode ser futura. Forma: PIX, Débito, Crédito, Dinheiro ou Misto.
 - **Nada financeiro é apagado.** Cancelar muda a cobrança para `Cancelada` (só `Pendente` ou `Coberta por pacote`; paga exige estorno antes). Estornar muda o pagamento para `Estornado` e a cobrança paga volta a `Pendente`. Motivo obrigatório (3 a 200 caracteres).

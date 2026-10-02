@@ -38,12 +38,12 @@ export const ADMIN = {
     principais: [
       ind('alunosAtivos', 'Alunos ativos', { estado: 'ok', valor: 3, secundario: 'de 4 cadastrados', mensagem: null, detalhe: 'alunosAtivos' }),
       ind('inadimplentes', 'Inadimplentes', { estado: 'ok', valor: 4, secundario: 'R$ 860,00 em aberto', mensagem: null, detalhe: 'inadimplentes' }),
-      ind('receitaRecebida', 'Receita recebida', { estado: 'ok', formato: 'moeda', valor: 1050, secundario: '3 pagamentos', mensagem: null, detalhe: 'receitaRecebida' }),
+      ind('receitaRecebida', 'Receita recebida', { estado: 'ok', formato: 'moeda', valor: 1050, secundario: '3 pagamentos', mensagem: null, detalhe: 'receitaRecebida', delta: { pct: 9.3, sentido: 'alta-boa' }, anterior: { rotulo: 'set/26', valor: 960.6 } }),
       ind('resultadoMensal', 'Resultado mensal', { formato: 'moeda', mensagem: 'Aguardando módulo financeiro' }),
     ],
     complementares: [
       ind('contasAVencer', 'Contas a vencer', { estado: 'ok', valor: 2, secundario: 'R$ 450,00 nos próximos 7 dias', mensagem: null, detalhe: 'contasAVencer' }),
-      ind('novasMatriculas', 'Novas matrículas', { estado: 'ok', valor: 1, secundario: 'Mês anterior: 2', mensagem: null, detalhe: 'novasMatriculas' }),
+      ind('novasMatriculas', 'Novas matrículas', { estado: 'ok', valor: 1, secundario: null, mensagem: null, detalhe: 'novasMatriculas', delta: { pct: -50, sentido: 'alta-boa' }, anterior: { rotulo: 'set/26', valor: 2 } }),
       ind('leads', 'Leads', { estado: 'nao_configurado', mensagem: 'Módulo ainda não configurado' }),
     ],
   },

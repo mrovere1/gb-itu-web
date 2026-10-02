@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDom } from './helpers/dom-env.js';
+import { createDom, flush } from './helpers/dom-env.js';
 import { createFakeApi, okEnv, failEnv, transportError } from './helpers/fake-api.js';
 import { createStudentForm } from '../js/student-form.js';
 import { createStudents } from '../js/students.js';
+import { createDataTable } from '../js/data-table.js';
 
 const PARTS = ['students-loading', 'students-error', 'students-empty', 'students-ready', 'student-detail', 'student-form-section'];
 const OPCOES = {
@@ -336,4 +337,75 @@ test('depois de editar, Novo aluno abre um formulário limpo e habilitado', asyn
   fill({ nome_completo: 'Paula Ficticia', data_nascimento: '1990-01-01' });
   dom.submit('student-form');
   assert.equal(fake.last().acao, 'alunos.criar');
+});
+
+// ---------- tabela configurável de alunos ----------
+const MAIS = [
+  { student_id: 'ALU-1', nome_completo: 'Ana Ficticia', nome_social: '', status: 'Ativo', faixa: 'Cinza', graus: 1, idade: 11, categoria: 'infantil', turma_principal_id: '' },
+  { student_id: 'ALU-2', nome_completo: 'Bruno Ficticio', nome_social: 'Bru', status: 'Trancado', faixa: 'Azul', graus: 2, idade: 36, categoria: 'adulto', turma_principal_id: 'TUR-1' },
+  { student_id: 'ALU-3', nome_completo: 'Carlos Ficticio', nome_social: '', status: 'Ativo', faixa: 'Branca', graus: 0, idade: 41, categoria: 'adulto', turma_principal_id: '' },
+];
+async function tableUi() {
+  const dom = createDom();
+  const fake = createFakeApi();
+  const createTable = (opts) => createDataTable({ doc: dom.doc, storage: null, download() {}, ...opts });
+  const students = createStudents({ doc: dom.doc, api: fake.api, createForm: createStudentForm, onAuthFailure: () => {}, createTable });
+  students.activate();
+  await fake.resolve(okEnv(listData(GESTOR, MAIS)));
+  const root = dom.$('students-table-root');
+  const tbl = () => root.children[2].children[0];
+  const names = () => tbl().children[1].children.map((tr) => tr.children[0].children[0].textContent);
+  const heads = () => tbl().children[0].children[0].children.map((th) => (th.children[0] ? th.children[0].textContent : th.textContent).replace(/ [▲▼]$/, ''));
+  return { dom, fake, students, root, tbl, names, heads };
+}
+
+test('alunos: alternar Lista ⇄ Tabela, com colunas escolhíveis e nome social ao lado do nome', async () => {
+  const s = await tableUi();
+  assert.equal(s.dom.$('students-views').hidden, false);
+  assert.equal(s.dom.$('students-list').hidden, false);
+  s.dom.click('students-view-table');
+  assert.equal(s.dom.$('students-list').hidden, true);
+  assert.equal(s.dom.$('students-table-root').hidden, false);
+  assert.equal(s.dom.$('students-view-table').getAttribute('aria-pressed'), 'true');
+  assert.deepEqual(s.heads(), ['Aluno', 'Status', 'Faixa', 'Graus', 'Idade', 'Categoria', 'Ações']);
+  assert.deepEqual(s.names(), ['Ana Ficticia', 'Bruno Ficticio (Bru)', 'Carlos Ficticio']);
+  s.dom.click('students-view-list');
+  assert.equal(s.dom.$('students-list').hidden, false);
+});
+
+test('alunos: filtros por coluna (lista, faixa numérica) e ordenação na tabela', async () => {
+  const s = await tableUi();
+  s.dom.click('students-view-table');
+  const filters = () => s.tbl().children[0].children[1].children;
+  filters()[1].children[0].value = 'Ativo';
+  filters()[1].children[0].listeners.change();
+  assert.deepEqual(s.names(), ['Ana Ficticia', 'Carlos Ficticio']);
+  filters()[4].children[0].value = '18';
+  filters()[4].children[0].listeners.input();
+  assert.deepEqual(s.names(), ['Carlos Ficticio'], 'adultos ativos');
+  s.tbl().children[0].children[0].children[4].children[0].listeners.click(); // idade: começa do maior
+  s.root.children[0].children[1].listeners.click(); // limpar filtros
+  assert.deepEqual(s.names(), ['Carlos Ficticio', 'Bruno Ficticio (Bru)', 'Ana Ficticia']);
+});
+
+test('alunos: o nome e o botão da tabela abrem o detalhe do aluno', async () => {
+  const s = await tableUi();
+  s.dom.click('students-view-table');
+  s.tbl().children[1].children[1].children[0].children[0].listeners.click();
+  await flush();
+  assert.equal(s.fake.last().acao, 'alunos.obter');
+  assert.deepEqual(s.fake.last().args, ['ALU-2']);
+  await s.fake.resolve(okEnv(detailData(bruno(), EDICAO_NENHUMA)));
+  assert.equal(s.dom.$('student-detail').hidden, false);
+});
+
+test('alunos: sem createTable não há alternância; reset volta à lista e limpa a tabela', async () => {
+  const plain = await openList(GESTOR, MAIS);
+  assert.equal(plain.dom.$('students-views').hidden, true);
+  const s = await tableUi();
+  s.dom.click('students-view-table');
+  s.students.reset();
+  assert.equal(s.dom.$('students-table-root').hidden, true);
+  assert.equal(s.tbl().children[1].children.length, 0);
+  assert.equal(s.dom.$('students-view-list').getAttribute('aria-pressed'), 'true');
 });

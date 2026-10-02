@@ -17,7 +17,7 @@ const ORDER = ['status', 'faixa', 'graus', 'idade', 'categoria', 'data_nasciment
   'cpf', 'telefone', 'email', 'contato_emergencia', 'telefone_emergencia', 'restricoes_medicas', 'observacoes', 'updated_at'];
 const WARNINGS = { FAIXA_INCOMPATIVEL_COM_IDADE: 'A faixa cadastrada não combina com a categoria da idade. Confira com o professor.' };
 
-export function createStudents({ doc, api, createForm, onAuthFailure }) {
+export function createStudents({ doc, api, createForm, onAuthFailure, createTable = null }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;      // a lista já foi pedida nesta sessão
   let dirty = false;       // houve cadastro/edição: a lista precisa ser recarregada
@@ -26,6 +26,8 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
   let opcoes = null;
   let detail = null;       // último detalhe aberto
   let requestId = 0;       // só a requisição mais nova (e ainda válida) pode mexer na tela
+  let view = 'list';       // 'list' | 'table'
+  let table = null;
 
   const form = createForm({
     doc,
@@ -137,6 +139,8 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
       li.appendChild(btn);
       list.appendChild(li);
     });
+    if (table) table.setRows(itens);
+    applyView();
     listPart = 'students-ready';
     showPart(listPart);
   }
@@ -149,6 +153,50 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
   function backToList() {
     if (dirty) loadList();
     else showPart(listPart);
+  }
+
+  // ---------- Tabela configurável ----------
+  function buildTable() {
+    if (!createTable) return null;
+    const label = (a) => a.nome_completo + (a.nome_social ? ' (' + a.nome_social + ')' : '');
+    return createTable({
+      root: $('students-table-root'), tableId: 'alunos', fileName: 'alunos', defaultSort: ['nome', 1],
+      columns: [
+        { key: 'nome', label: 'Aluno', type: 'text', value: (a) => label(a), filter: 'text',
+          render: (a, td) => {
+            const b = doc.createElement('button');
+            b.type = 'button';
+            b.className = 'link dt-name';
+            b.textContent = label(a);
+            b.addEventListener('click', () => openDetail(a.student_id));
+            td.appendChild(b);
+          } },
+        { key: 'status', label: 'Status', type: 'text', value: (a) => a.status, filter: 'select' },
+        { key: 'faixa', label: 'Faixa', type: 'text', value: (a) => a.faixa, filter: 'select' },
+        { key: 'graus', label: 'Graus', type: 'number', value: (a) => a.graus, filter: 'range' },
+        { key: 'idade', label: 'Idade', type: 'number', value: (a) => a.idade, filter: 'range' },
+        { key: 'categoria', label: 'Categoria', type: 'text', value: (a) => a.categoria, filter: 'select' },
+        { key: 'turma', label: 'Turma', type: 'text', value: (a) => a.turma_principal_id, filter: 'text', defaultVisible: false },
+        { key: 'acoes', label: 'Ações', locked: true, value: () => '',
+          render: (a, td) => {
+            const b = doc.createElement('button');
+            b.type = 'button';
+            b.className = 'secondary';
+            b.textContent = 'Abrir cadastro';
+            b.addEventListener('click', () => openDetail(a.student_id));
+            td.appendChild(b);
+          } },
+      ],
+    });
+  }
+
+  function applyView() {
+    const t = view === 'table' && !!table;
+    $('students-list').hidden = t;
+    $('students-table-root').hidden = !t;
+    $('students-views').hidden = !table;
+    $('students-view-list').setAttribute('aria-pressed', String(!t));
+    $('students-view-table').setAttribute('aria-pressed', String(t));
   }
 
   // ---------- Detalhe ----------
@@ -226,6 +274,9 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
     perm = NO_PERM;
     opcoes = null;
     detail = null;
+    view = 'list';
+    if (table) table.reset();
+    applyView();
     $('students-q').value = '';
     setStatusOptions([]);
     $('students-new').hidden = true;
@@ -243,6 +294,10 @@ export function createStudents({ doc, api, createForm, onAuthFailure }) {
     showPart('students-loading');
   }
 
+  $('students-view-list').addEventListener('click', () => { view = 'list'; applyView(); });
+  $('students-view-table').addEventListener('click', () => { if (table) { view = 'table'; applyView(); } });
+  table = buildTable();
+  applyView();
   $('students-filter').addEventListener('submit', (e) => { e.preventDefault(); loadList(); });
   $('students-retry').addEventListener('click', () => { loadList(); });
   $('students-new').addEventListener('click', openCreate);

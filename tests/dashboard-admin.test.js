@@ -49,7 +49,10 @@ test('cartão com dado mostra o valor; sem dado mostra só a mensagem (nunca zer
   const { dashboard, card } = setup();
   await dashboard.load();
   const text = (node) => node.children.map((c) => c.textContent);
-  assert.deepEqual(text(card('kpi-main', 0)).slice(0, 3), ['Alunos ativos', '3', 'de 4 cadastrados']);
+  const ativos = card('kpi-main', 0);
+  assert.equal(ativos.children[0].textContent, 'Alunos ativos');
+  assert.equal(ativos.children[1].children[0].textContent, '3');
+  assert.equal(ativos.children[2].textContent, 'de 4 cadastrados');
   const pending = card('kpi-main', 3);
   assert.deepEqual(text(pending).slice(0, 2), ['Resultado mensal', 'Aguardando módulo financeiro']);
   assert.ok(!pending.children.some((c) => c.className === 'kpi-value'));
@@ -57,6 +60,28 @@ test('cartão com dado mostra o valor; sem dado mostra só a mensagem (nunca zer
   assert.equal(card('kpi-more', 2).children[1].textContent, 'Módulo ainda não configurado');
   assert.equal(card('kpi-main', 0).title, 'Como se calcula alunosAtivos');
   assert.ok(text(card('kpi-main', 0)).some((t) => t.startsWith('Como é calculado')));
+});
+
+test('cartão com comparação: chip de variação ao lado do valor, mês anterior abaixo e filete conforme o sentido', async () => {
+  const { dashboard, card } = setup();
+  await dashboard.load();
+  const rec = card('kpi-main', 2);
+  assert.match(rec.className, /kpi-good/);
+  const main = rec.children[1];
+  assert.equal(flat(main.children[0].textContent), 'R$ 1.050,00');
+  assert.equal(main.children[1].textContent, '+9,3%');
+  assert.equal(main.children[1].className, 'delta delta-good');
+  assert.equal(main.children[1].getAttribute('aria-label'), 'Variação de +9,3% sobre set/26');
+  assert.equal(rec.children[2].textContent, '3 pagamentos');
+  assert.equal(flat(rec.children[3].textContent), 'set/26: R$ 960,60');
+  assert.equal(rec.children[3].className, 'kpi-prev');
+  const nov = card('kpi-more', 1);
+  assert.match(nov.className, /kpi-bad/, 'menos matrículas que no mês anterior é ruim');
+  assert.equal(nov.children[1].children[1].textContent, '−50,0%');
+  assert.equal(nov.children[1].children[1].className, 'delta delta-bad');
+  assert.equal(nov.children[2].textContent, 'set/26: 2');
+  assert.doesNotMatch(card('kpi-main', 0).className, /kpi-good|kpi-bad/, 'sem comparação, sem cor de sentido');
+  assert.equal(card('kpi-main', 0).children[1].children.length, 1, 'sem chip');
 });
 
 test('cartão com lista é botão e convida a abrir a área de trabalho; sem lista não é clicável', async () => {

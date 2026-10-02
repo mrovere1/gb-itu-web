@@ -2,6 +2,8 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=5ad36c9cdc';
+
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
 const COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -14,9 +16,11 @@ const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
 
 export const money = (n) => (typeof n === 'number' ? MONEY.format(n) : '—');
 export const dateBR = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.slice(8) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '');
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+export const monthLabel = (c) => (/^\d{4}-\d{2}$/.test(c) ? MONTHS[parseInt(c.slice(5), 10) - 1] + '/' + c.slice(2, 4) : String(c));
 const compBR = (c) => (/^\d{4}-\d{2}$/.test(c) ? c.slice(5) + '/' + c.slice(0, 4) : c);
 
-export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
+export function createMensalidades({ doc, api, onAuthFailure = () => {}, createTable = null }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
@@ -24,6 +28,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
   let data = null;      // última lista
   let dialog = null;    // { kind, item, opener, comps }
   let submitting = false;
+  let view = 'cards';   // 'cards' | 'table'
+  let table = null;
 
   function el(tag, className, text) {
     const node = doc.createElement(tag);
@@ -61,13 +67,23 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     select.value = values.includes(current) ? current : values[0];
   }
 
-  function renderTotals(t) {
+  // O que é bom: pago e previsto subirem; pendente e vencido caírem.
+  const TOTALS = [['Previsto', 'previsto', 'alta-boa'], ['Pago', 'pago', 'alta-boa'], ['Pendente', 'pendente', 'alta-ma'], ['Vencido', 'vencido', 'alta-ma']];
+
+  function renderTotals(t, prev, prevComp) {
     const box = $('mens-totals');
     box.textContent = '';
-    [['Previsto', t.previsto], ['Pago', t.pago], ['Pendente', t.pendente], ['Vencido', t.vencido]].forEach(([label, value]) => {
-      const card = el('div', 'total-card');
-      card.appendChild(el('span', 'muted', label));
-      card.appendChild(el('strong', '', money(value)));
+    TOTALS.forEach(([label, key, sentido]) => {
+      const pct = prev ? pctChange(t[key], prev[key]) : null;
+      const info = deltaInfo(pct, sentido);
+      const card = el('div', 'total-card' + (info ? ' total-' + info.tone : ''));
+      card.appendChild(el('span', 'total-label', label));
+      const main = el('div', 'total-main');
+      main.appendChild(el('strong', '', money(t[key])));
+      const chip = deltaChip(doc, pct, sentido, prevComp ? monthLabel(prevComp) : '');
+      if (chip) main.appendChild(chip);
+      card.appendChild(main);
+      if (prev && prevComp) card.appendChild(el('span', 'total-prev', monthLabel(prevComp) + ': ' + money(prev[key])));
       box.appendChild(card);
     });
   }
@@ -77,6 +93,27 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     b.type = 'button';
     b.addEventListener('click', () => openDialog(kind, item, b));
     return b;
+  }
+
+  /** Todos os meses pendentes do aluno (não só o filtrado), com atalho para ver cada mês. */
+  function pendingBlock(item) {
+    const list = Array.isArray(item.pendencias) ? item.pendencias : [];
+    if (list.length === 0) return null;
+    const box = el('div', 'mens-pend');
+    box.appendChild(el('span', 'mens-pend-label', item.status === 'Pendente' ? 'Pendências:' : 'Outros meses pendentes:'));
+    list.forEach((p) => {
+      const b = el('button', 'chip ' + (p.vencida ? 'chip-vencida' : 'chip-pendente') + ' chip-btn', monthLabel(p.competencia));
+      b.type = 'button';
+      b.title = 'Ver ' + monthLabel(p.competencia) + (typeof p.valor === 'number' ? ' · ' + money(p.valor) : '');
+      if (p.competencia === item.competencia) b.setAttribute('aria-current', 'true');
+      b.addEventListener('click', () => openWith({ competencia: p.competencia, busca: item.nome }));
+      box.appendChild(b);
+    });
+    if (item.pendenciasAnteriores > 0) {
+      const n = item.pendenciasAnteriores;
+      box.appendChild(el('span', 'mens-warn', n + (n === 1 ? ' mês anterior em aberto · ' : ' meses anteriores em aberto · ') + money(item.pendenciasAnterioresValor)));
+    }
+    return box;
   }
 
   function renderRow(item) {
@@ -90,6 +127,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     if (item.pagamento && item.pagamento.status === 'Confirmado') parts.push('pago em ' + dateBR(item.pagamento.data) + (item.pagamento.forma ? ' (' + item.pagamento.forma + ')' : ''));
     if (item.pagamento && item.pagamento.status === 'Estornado') parts.push('pagamento estornado');
     main.appendChild(el('span', 'muted', parts.join(' · ')));
+    const pend = pendingBlock(item);
+    if (pend) main.appendChild(pend);
     row.appendChild(main);
     row.appendChild(el('strong', 'mens-value', money(item.valor)));
     const chips = el('span', 'mens-chips');
@@ -119,13 +158,15 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     $('mens-comp').value = d.competencia;
     setOptions($('mens-status'), ['', ...d.opcoes.status], (v) => (v === '' ? 'Todos os status' : v));
     $('mens-generate').hidden = !d.permissoes.gerar;
-    renderTotals(d.totais);
+    renderTotals(d.totais, d.totaisAnterior, d.competenciaAnterior);
     $('mens-count').textContent = d.total === d.totais.cobrancas ? d.total + ' cobranças' : d.total + ' de ' + d.totais.cobrancas + ' cobranças';
     $('mens-truncated').hidden = d.total <= d.itens.length;
     const list = $('mens-list');
     list.textContent = '';
     d.itens.forEach((i) => list.appendChild(renderRow(i)));
     show(d.itens.length === 0 ? 'mens-empty' : 'mens-ready');
+    if (table) table.setRows(d.itens);
+    applyView();
   }
 
   async function load(keepNotice) {
@@ -326,6 +367,46 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     return load();
   }
 
+  // ---------- Tabela configurável ----------
+  function buildTable() {
+    if (!createTable) return null;
+    const chip = (cls, text) => el('span', 'chip ' + cls, text);
+    const paidOn = (i) => (i.pagamento && i.pagamento.status === 'Confirmado' ? i.pagamento : null);
+    return createTable({
+      root: $('mens-table-root'), tableId: 'mensalidades', fileName: 'mensalidades', defaultSort: ['nome', 1],
+      columns: [
+        { key: 'nome', label: 'Aluno', type: 'text', value: (i) => i.nome, filter: 'text' },
+        { key: 'competencia', label: 'Competência', type: 'text', value: (i) => i.competencia, text: (i) => compBR(i.competencia), filter: 'text', defaultVisible: false },
+        { key: 'vencimento', label: 'Vencimento', type: 'date', value: (i) => i.vencimento, filter: 'date' },
+        { key: 'valor', label: 'Valor', type: 'money', value: (i) => i.valor, filter: 'range' },
+        { key: 'status', label: 'Status', type: 'chip', value: (i) => i.status, filter: 'select',
+          render: (i, td) => { td.appendChild(chip(STATUS_CLASS[i.status] || 'chip-neutro', i.status)); if (i.vencida) td.appendChild(chip('chip-vencida', 'Vencida')); } },
+        { key: 'pendMeses', label: 'Meses pendentes', type: 'text', value: (i) => i.pendencias.map((p) => monthLabel(p.competencia)).join(', '), filter: 'text' },
+        { key: 'pendQtd', label: 'Qtd. de meses pendentes', type: 'number', value: (i) => i.pendencias.length, filter: 'range', defaultVisible: false },
+        { key: 'atrasadas', label: 'Meses anteriores em aberto', type: 'number', value: (i) => i.pendenciasAnteriores, filter: 'range' },
+        { key: 'emAberto', label: 'Em aberto do aluno', type: 'money', value: (i) => i.pendenciasValor, filter: 'range' },
+        { key: 'pagoEm', label: 'Pago em', type: 'date', value: (i) => (paidOn(i) ? paidOn(i).data : ''), filter: 'date', defaultVisible: false },
+        { key: 'forma', label: 'Forma de pagamento', type: 'text', value: (i) => (paidOn(i) ? paidOn(i).forma : ''), filter: 'select', defaultVisible: false },
+        { key: 'acoes', label: 'Ações', locked: true, value: () => '',
+          render: (i, td) => {
+            if (i.acoes.registrar) td.appendChild(actionButton('Pagar', 'pagar', i, ''));
+            if (i.acoes.editarVencimento) td.appendChild(actionButton('Vencimento', 'vencimento', i));
+            if (i.acoes.estornar) td.appendChild(actionButton('Estornar', 'estornar', i));
+            if (i.acoes.cancelar) td.appendChild(actionButton('Cancelar', 'cancelar', i));
+          } },
+      ],
+    });
+  }
+
+  function applyView() {
+    const t = view === 'table' && !!table;
+    $('mens-list').hidden = t;
+    $('mens-table-root').hidden = !t;
+    $('mens-views').hidden = !table;
+    $('mens-view-cards').setAttribute('aria-pressed', String(!t));
+    $('mens-view-table').setAttribute('aria-pressed', String(t));
+  }
+
   // ---------- Ciclo de vida ----------
   function activate() {
     if (loaded) return;
@@ -341,6 +422,9 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     competencia = '';
     dialog = null;
     submitting = false;
+    view = 'cards';
+    if (table) table.reset();
+    applyView();
     $('mens-dialog').hidden = true;
     $('view-mensalidades-inner').inert = false;
     ['mens-list', 'mens-totals', 'mens-dialog-error', 'mens-error-msg', 'mens-error-ref', 'mens-notice'].forEach((id) => { $(id).textContent = ''; });
@@ -365,11 +449,16 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
   });
   $('mens-status').addEventListener('change', () => { load(); });
   $('mens-generate').addEventListener('click', () => { if (data) openDialog('gerar', null, $('mens-generate')); });
+  $('mens-view-cards').addEventListener('click', () => { view = 'cards'; applyView(); });
+  $('mens-view-table').addEventListener('click', () => { if (table) { view = 'table'; applyView(); } });
   $('mens-form').addEventListener('submit', submit);
   $('mens-cancel').addEventListener('click', () => closeDialog());
   $('mens-dialog-backdrop').addEventListener('click', () => closeDialog());
   $('mens-f-gcomp').addEventListener('change', () => { if (dialog && dialog.kind === 'gerar') previewGenerate(); });
   doc.addEventListener('keydown', (e) => { if (dialog && e && e.key === 'Escape') closeDialog(); });
+
+  table = buildTable();
+  applyView();
 
   return { activate, reset, load, openWith };
 }

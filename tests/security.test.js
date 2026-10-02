@@ -42,8 +42,21 @@ test('código do portal: sem APIs perigosas, sem armazenamento e sem log', () =>
   ];
   jsFiles.forEach((f) => {
     const src = stripComments(read('js/' + f));
-    banned.forEach((re) => assert.ok(!re.test(src), `js/${f} contém ${re}`));
+    // Única exceção aprovada: main.js entrega window.localStorage à tabela, só para lembrar quais COLUNAS o usuário escolheu.
+    banned.filter((re) => !(f === 'main.js' && re.source === '\\blocalStorage\\b')).forEach((re) => assert.ok(!re.test(src), `js/${f} contém ${re}`));
   });
+});
+
+test('preferência de colunas: só main.js toca no localStorage; a tabela grava apenas chaves de colunas', () => {
+  const main = stripComments(read('js/main.js'));
+  assert.equal((main.match(/\blocalStorage\b/g) || []).length, 1, 'main.js usa localStorage uma única vez');
+  assert.ok(/window\.localStorage/.test(main));
+  const table = stripComments(read('js/data-table.js'));
+  assert.ok(!/\blocalStorage\b|\bsessionStorage\b/.test(table), 'a tabela recebe o armazenamento por injeção');
+  const setCalls = table.match(/storage\.setItem\([^)]*\)/g) || [];
+  assert.equal(setCalls.length, 1);
+  assert.ok(/JSON\.stringify\(\{ v: 1, cols: order \}\)/.test(setCalls[0]), 'só a lista de chaves de colunas é gravada');
+  assert.ok(/STORE_PREFIX = 'gbitu\.colunas\.'/.test(table));
 });
 
 test('só api.js e main.js usam fetch; a URL da API só existe em config.js', () => {

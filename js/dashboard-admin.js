@@ -1,7 +1,8 @@
 // Visão completa do painel (somente Administrador): cartões, gráficos, aniversariantes e área de trabalho.
 // Texto do servidor entra sempre por textContent. Recebe doc e callbacks por injeção; não chama a rede.
-import { renderRevenueCard } from './revenue-chart.js?v=1137cff686';
-import { createWorkspace } from './workspace.js?v=1137cff686';
+import { renderRevenueCard } from './revenue-chart.js?v=5ad36c9cdc';
+import { createWorkspace } from './workspace.js?v=5ad36c9cdc';
+import { deltaChip, deltaInfo } from './delta.js?v=5ad36c9cdc';
 
 const NUMBER = new Intl.NumberFormat('pt-BR');
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -42,15 +43,26 @@ export function createAdminDashboard({ doc, openStudent, openMensalidade = () =>
   }
 
   // ---------- Cartões ----------
+  function formatAnterior(a, formato) {
+    return formatIndicator({ formato, valor: a.valor });
+  }
+
   function kpi(ind, big, data) {
     const hasList = ind.estado === 'ok' && ind.detalhe && Array.isArray(data.detalhes[ind.detalhe]);
-    const card = el(hasList ? 'button' : 'div', 'kpi' + (big ? ' kpi-big' : '') + (ind.estado === 'ok' ? '' : ' kpi-pending'));
+    const info = ind.estado === 'ok' && ind.delta ? deltaInfo(ind.delta.pct, ind.delta.sentido) : null;
+    const tone = info ? ' kpi-' + info.tone : '';
+    const card = el(hasList ? 'button' : 'div', 'kpi' + (big ? ' kpi-big' : '') + (ind.estado === 'ok' ? tone : ' kpi-pending'));
     if (hasList) card.type = 'button';
     card.title = ind.ajuda;
     card.appendChild(el('span', 'kpi-title', ind.titulo));
     if (ind.estado === 'ok') {
-      card.appendChild(el('strong', 'kpi-value', formatIndicator(ind)));
+      const main = el('div', 'kpi-main');
+      main.appendChild(el('strong', 'kpi-value', formatIndicator(ind)));
+      const chip = info ? deltaChip(doc, ind.delta.pct, ind.delta.sentido, ind.anterior && ind.anterior.rotulo) : null;
+      if (chip) main.appendChild(chip);
+      card.appendChild(main);
       if (ind.secundario) card.appendChild(el('span', 'muted', ind.secundario));
+      if (ind.anterior && typeof ind.anterior.valor === 'number') card.appendChild(el('span', 'kpi-prev', ind.anterior.rotulo + ': ' + formatAnterior(ind.anterior, ind.formato)));
     } else {
       card.appendChild(el('span', 'kpi-msg', ind.mensagem));
     }

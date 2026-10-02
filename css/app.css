@@ -9,6 +9,7 @@
   --bg: #ffffff;
   --tint: #f6f6f6;
   --accent: var(--red);
+  --good: #1f8a5b;
   --accent-text: #ffffff;
   --error-bg: #fdeceb;
   --error-text: #8a1c14;
@@ -33,7 +34,9 @@ h1, h2 { line-height: 1.25; }
 .center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; flex-direction: column; gap: 16px; }
 .skip { position: absolute; left: -999px; }
 .skip:focus { left: 8px; top: 8px; background: var(--bg); padding: 8px; z-index: 10; border: 2px solid var(--ink); }
-main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 48px; }
+/* Formulários e detalhes continuam estreitos; tabelas e painel usam a largura útil. */
+#student-form-section, #student-detail { max-width: 1040px; margin-left: auto; margin-right: auto; }
 main:focus { outline: none; }
 
 /* ---------- Topo e abas ---------- */
@@ -122,10 +125,18 @@ button.link:hover { background: var(--tint); }
 .dash-controls input[type="month"] { min-width: 170px; }
 .kpi-grid { display: grid; gap: 12px; margin-bottom: 16px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 .kpi-grid-main { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-.kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%; min-height: 96px; padding: 14px 16px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-top: 4px solid var(--red); border-radius: var(--radius); font-weight: 400; }
+.kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%; min-height: 96px; padding: 14px 16px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-top: 4px solid #b9b9b9; border-radius: var(--radius); font-weight: 400; }
 button.kpi { cursor: pointer; }
-button.kpi:hover { background: var(--tint); border-color: var(--line); border-top-color: var(--red-dark); }
-.kpi-title { font-size: .9rem; font-weight: 600; color: var(--muted); }
+button.kpi:hover { background: var(--tint); border-color: var(--line); }
+.kpi-title { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.kpi-main { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.kpi-prev { font-size: .85rem; color: var(--muted); }
+.kpi-good { border-top-color: var(--good); }
+.kpi-bad { border-top-color: var(--red); }
+.delta { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: .85rem; font-weight: 800; white-space: nowrap; }
+.delta-good { background: var(--ok-bg); color: var(--ok-text); }
+.delta-bad { background: var(--error-bg); color: var(--error-text); }
+.delta-flat { background: var(--tint); color: var(--muted); }
 .kpi-value { font-size: 1.7rem; line-height: 1.2; }
 .kpi-big { min-height: 124px; }
 .kpi-big .kpi-value { font-size: 2.2rem; }
@@ -171,8 +182,38 @@ button.kpi:hover { background: var(--tint); border-color: var(--line); border-to
 .chip-vencida { background: var(--error-bg); color: var(--error-text); border-color: var(--error-text); }
 .chip-neutro { background: var(--tint); color: var(--muted); border-color: var(--line); }
 .total-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }
-.total-card { display: flex; flex-direction: column; padding: 12px 14px; background: var(--tint); border-left: 4px solid var(--red); border-radius: 6px; }
+.total-card { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-top: 4px solid #b9b9b9; border-radius: var(--radius); }
+.total-good { border-top-color: var(--good); }
+.total-bad { border-top-color: var(--red); }
+.total-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.total-main { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .total-card strong { font-size: 1.3rem; }
+.total-prev { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.mens-pend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.mens-pend-label { font-size: .85rem; font-weight: 600; color: var(--muted); }
+.chip-btn { cursor: pointer; font: inherit; font-size: .8rem; font-weight: 700; min-height: 0; padding: 2px 10px; }
+.chip-btn.chip-vencida { background: var(--error-bg); color: var(--error-text); border-color: var(--error-text); }
+.chip-btn.chip-pendente { background: var(--notice-bg); color: #6b4a00; border-color: #e8d49a; }
+.chip-btn:hover { filter: brightness(.96); background-image: none; }
+.chip-btn[aria-current="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+.mens-warn { font-size: .85rem; font-weight: 600; color: var(--error-text); }
+.dt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dt-bar button { min-height: 40px; }
+.dt-count { margin-left: auto; }
+.dt-picker { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; background: var(--bg); }
+.dt-picker-list { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 16px; }
+.dt-picker-list li { display: flex; align-items: center; gap: 6px; }
+.dt-picker-list .check { flex: 1 1 auto; }
+.dt-move { min-height: 32px; padding: 2px 10px; }
+.dt-table { min-width: 720px; }
+.dt-table td:first-child, .dt-table th:first-child { white-space: nowrap; }
+.dt-table td { min-width: 90px; }
+.dt-name { background: transparent; border: 0; padding: 0; min-height: 0; font-weight: 700; color: var(--ink); text-align: left; cursor: pointer; }
+.dt-name:hover { background: transparent; text-decoration: underline; }
+.dt-filters th { position: sticky; top: 41px; background: var(--bg); z-index: 1; font-weight: 400; padding: 6px 8px; }
+.dt-filters input, .dt-filters select { min-height: 34px; padding: 4px 8px; font-size: .85rem; width: 100%; }
+.dt-filters input + input { margin-top: 4px; }
+.dt-num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ---------- Cartão clicável abre a área de trabalho ---------- */
 .kpi:not(.kpi-big) .kpi-open { font-size: .78rem; }
