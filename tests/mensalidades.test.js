@@ -549,3 +549,32 @@ test('sem createTable não há alternância e a lista de cartões continua sendo
   assert.equal(s.dom.$('mens-table-root').hidden, true);
   assert.equal(s.dom.$('mens-view-cards').getAttribute('aria-pressed'), 'true');
 });
+
+test('API antiga (sem pendências por mês, sem mês anterior): cartões e tabela funcionam, sem erro', async () => {
+  const legacy = LIST([item(), item({ charge_id: 'COB-2', nome: 'Bruno Ficticio', status: 'Paga', vencida: false })]);
+  legacy.itens.forEach((i) => { delete i.pendencias; delete i.pendenciasValor; delete i.pendenciasAnteriores; delete i.pendenciasAnterioresValor; });
+  delete legacy.totaisAnterior;
+  delete legacy.competenciaAnterior;
+  const s = tableSetup(() => ok(legacy));
+  s.mens.activate();
+  await flush();
+  assert.deepEqual(s.dom.visible(PARTS), ['mens-ready'], 'a lista aparece, sem a mensagem de erro');
+  assert.equal(s.dom.$('mens-totals').children.length, 4);
+  assert.equal(s.dom.$('mens-totals').children[0].children.length, 2, 'totais sem mês anterior: só rótulo e valor');
+  assert.equal(s.dom.$('mens-list').children.length, 2);
+  assert.equal(s.dom.$('mens-list').children[0].children[0].children[0].children.length, 2, 'sem bloco de pendências');
+  s.dom.click('mens-view-table');
+  assert.equal(s.names().length, 2);
+  const ana = s.tbl().children[1].children[0].children;
+  assert.equal(ana[4].textContent, '—', 'meses pendentes sem dado vira traço');
+  assert.equal(ana[5].textContent, '—');
+  assert.equal(ana[6].textContent, '—');
+});
+
+test('qualquer falha ao desenhar a lista mostra a mensagem genérica e o botão de tentar novamente', async () => {
+  const s = tableSetup(() => ok({ ...LIST(), itens: [{ nome: 'sem os campos esperados' }] }));
+  s.mens.activate();
+  await flush();
+  assert.deepEqual(s.dom.visible(PARTS), ['mens-error']);
+  assert.equal(s.dom.$('mens-error-msg').textContent, 'Não foi possível concluir. Tente novamente.');
+});

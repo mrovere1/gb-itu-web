@@ -2,7 +2,7 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=5ad36c9cdc';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=2bce4732b2';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -368,6 +368,10 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   }
 
   // ---------- Tabela configurável ----------
+  // API antiga (sem pendências por mês) ainda funciona: os campos ausentes viram colunas vazias.
+  const pendOf = (i) => (Array.isArray(i.pendencias) ? i.pendencias : []);
+  const numOrNull = (v) => (typeof v === 'number' ? v : null);
+
   function buildTable() {
     if (!createTable) return null;
     const chip = (cls, text) => el('span', 'chip ' + cls, text);
@@ -381,10 +385,10 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
         { key: 'valor', label: 'Valor', type: 'money', value: (i) => i.valor, filter: 'range' },
         { key: 'status', label: 'Status', type: 'chip', value: (i) => i.status, filter: 'select',
           render: (i, td) => { td.appendChild(chip(STATUS_CLASS[i.status] || 'chip-neutro', i.status)); if (i.vencida) td.appendChild(chip('chip-vencida', 'Vencida')); } },
-        { key: 'pendMeses', label: 'Meses pendentes', type: 'text', value: (i) => i.pendencias.map((p) => monthLabel(p.competencia)).join(', '), filter: 'text' },
-        { key: 'pendQtd', label: 'Qtd. de meses pendentes', type: 'number', value: (i) => i.pendencias.length, filter: 'range', defaultVisible: false },
-        { key: 'atrasadas', label: 'Meses anteriores em aberto', type: 'number', value: (i) => i.pendenciasAnteriores, filter: 'range' },
-        { key: 'emAberto', label: 'Em aberto do aluno', type: 'money', value: (i) => i.pendenciasValor, filter: 'range' },
+        { key: 'pendMeses', label: 'Meses pendentes', type: 'text', value: (i) => pendOf(i).map((p) => monthLabel(p.competencia)).join(', '), filter: 'text' },
+        { key: 'pendQtd', label: 'Qtd. de meses pendentes', type: 'number', value: (i) => (Array.isArray(i.pendencias) ? i.pendencias.length : null), filter: 'range', defaultVisible: false },
+        { key: 'atrasadas', label: 'Meses anteriores em aberto', type: 'number', value: (i) => numOrNull(i.pendenciasAnteriores), filter: 'range' },
+        { key: 'emAberto', label: 'Em aberto do aluno', type: 'money', value: (i) => numOrNull(i.pendenciasValor), filter: 'range' },
         { key: 'pagoEm', label: 'Pago em', type: 'date', value: (i) => (paidOn(i) ? paidOn(i).data : ''), filter: 'date', defaultVisible: false },
         { key: 'forma', label: 'Forma de pagamento', type: 'text', value: (i) => (paidOn(i) ? paidOn(i).forma : ''), filter: 'select', defaultVisible: false },
         { key: 'acoes', label: 'Ações', locked: true, value: () => '',
