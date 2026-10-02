@@ -4,3 +4,6 @@ node_modules/
 *.log
 GB_itu_logo.jpg
 gb_icone.png
+
+# Superdesign: contexto local e rascunhos
+.superdesign/

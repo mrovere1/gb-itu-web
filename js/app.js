@@ -16,7 +16,7 @@ const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'touchstart', 'scroll'];
 const MENSALIDADES_PERFIS = ['Administrador', 'Gestor', 'Financeiro']; // só a vitrine: o servidor é quem autoriza
 const TABS = [['dashboard', 'tab-dashboard', 'view-dashboard'], ['students', 'tab-students', 'view-students'], ['mensalidades', 'tab-mensalidades', 'view-mensalidades']];
 
-export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {} } }) {
+export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {}, openWith() {} } }) {
   const $ = (id) => doc.getElementById(id);
   let busy = false;           // login em andamento
   let signedIn = false;       // já há usuário do Firebase (evita carregar a sessão duas vezes)
@@ -41,6 +41,12 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
   function openStudent(id) {
     students.open(id);
     showTab('students');
+  }
+
+  /** Abre a aba Mensalidades já filtrada (vindo da área de trabalho do painel). */
+  function openMensalidade(filters) {
+    mensalidades.openWith(filters);
+    showTab('mensalidades');
   }
 
   function showLogin(message) {
@@ -183,5 +189,5 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     auth.start(handleUser);
   }
 
-  return { start, onIdle, onSignOutFailed, onAuthFailure, openStudent };
+  return { start, onIdle, onSignOutFailed, onAuthFailure, openStudent, openMensalidade };
 }

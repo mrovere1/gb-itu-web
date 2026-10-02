@@ -1,13 +1,13 @@
 // Painel inicial. Texto do servidor entra sempre por textContent. Não importa nada: recebe doc e api por injeção.
 
-import { createAdminDashboard } from './dashboard-admin.js?v=e722f3b6a1';
+import { createAdminDashboard } from './dashboard-admin.js?v=1137cff686';
 
 const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
 const COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export function createDashboard({ doc, api, openStudent = () => {} }) {
+export function createDashboard({ doc, api, openStudent = () => {}, openMensalidade = () => {}, download = () => {} }) {
   const $ = (id) => doc.getElementById(id);
-  const admin = createAdminDashboard({ doc, openStudent });
+  const admin = createAdminDashboard({ doc, openStudent, openMensalidade, download });
   let competence = null; // só o Administrador escolhe competência; nos demais perfis fica nulo
   let loadId = 0; // cada carregamento tem um número; só o mais recente (e ainda válido) pode mexer na tela
 
@@ -83,8 +83,8 @@ export function createDashboard({ doc, api, openStudent = () => {} }) {
     competence = null;
     $('dash-comp').value = '';
     $('dash-comp-box').hidden = true;
+    admin.reset(); // antes de restaurar o quadro básico: a área de trabalho devolve as partes que escondeu
     $('dash-basic').hidden = false;
-    admin.reset();
     show('dash-loading');
   }
 

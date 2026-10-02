@@ -317,6 +317,15 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
     }
   }
 
+  /** Abre a lista já na competência e com a busca pedida (usado pela área de trabalho do painel). */
+  function openWith(f) {
+    loaded = true;
+    if (f && COMPETENCIA.test(f.competencia || '')) competencia = f.competencia;
+    $('mens-q').value = f && typeof f.busca === 'string' ? f.busca.slice(0, 60) : '';
+    $('mens-status').value = '';
+    return load();
+  }
+
   // ---------- Ciclo de vida ----------
   function activate() {
     if (loaded) return;
@@ -362,5 +371,5 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {} }) {
   $('mens-f-gcomp').addEventListener('change', () => { if (dialog && dialog.kind === 'gerar') previewGenerate(); });
   doc.addEventListener('keydown', (e) => { if (dialog && e && e.key === 'Escape') closeDialog(); });
 
-  return { activate, reset, load };
+  return { activate, reset, load, openWith };
 }

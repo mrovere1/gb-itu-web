@@ -86,7 +86,7 @@ quando há lançamento).
 | Contas a vencer | Cobranças `Pendente` que vencem de hoje até 7 dias (constante `DIAS_A_VENCER`), de qualquer competência. |
 | Ticket médio | Receita recebida ÷ alunos distintos que pagaram na competência. Sem pagamentos: mensagem, nunca divisão por zero. |
 | Alunos pagantes | Alunos `Ativo` com `valor_contratado` > 0 e sem `tipo_isencao`. |
-| Gráfico | Últimos 6 meses até a competência: prevista e recebida. |
+| Gráfico | Últimos 6 meses até a competência: prevista e recebida (`meses[]`), variação do recebido sobre o mês anterior (`variacao`, %) e a composição do mês (`mes`: `previsto`, `recebido`, `pacote`, `aVencer`, `emAberto`; `null` em mês sem lançamento). O portal desenha o anel (recebido ÷ previsto), a lista da composição e as colunas comparativas. |
 
 Campos novos na resposta completa: `avisos[]` (problemas de qualidade dos dados), `aniversariantesEstado` (`ok` ou `sem_datas`),
 `graficos.receitaPrevistaRecebida.meses[]` e, em `detalhes`, as listas `inadimplentes`, `contasAVencer` (`info`: competência, vencimento, valor e, só em
@@ -102,3 +102,7 @@ Perfis: ver = Administrador, Gestor e Financeiro; registrar pagamento, editar ve
 - **Nada financeiro é apagado.** Cancelar muda a cobrança para `Cancelada` (só `Pendente` ou `Coberta por pacote`; paga exige estorno antes). Estornar muda o pagamento para `Estornado` e a cobrança paga volta a `Pendente`. Motivo obrigatório (3 a 200 caracteres).
 - Cada operação é auditada **antes** de gravar, sob lock; se a segunda aba falhar, a primeira é desfeita.
 - **Gerar cobranças** só vale para o mês atual e o próximo. Entram matrículas `Ativa` de alunos `Ativo`, com valor maior que zero e sem `tipo_isencao`; quem já tem cobrança na competência (de qualquer status) é pulado. `pago_ate` cobrindo o mês gera `Coberta por pacote`. Sem `dia_vencimento`, vale o dia padrão (`Configuracoes.dia_vencimento_padrao`, padrão 10). **Nenhuma mensagem é enviada a ninguém**: é só o registro interno.
+
+### Área de trabalho dos cartões (portal)
+
+Cada cartão com lista (`detalhes`) abre a sua área de trabalho em tela larga: inadimplentes, contas a vencer, receita recebida, alunos ativos e novas matrículas. Tabela ordenável (`aria-sort`), busca por nome, filtro da lista, seleção de linhas, exportação para planilha (CSV com `;`, BOM e proteção contra fórmulas) e, nos inadimplentes, quadro por faixa de atraso (1–7, 8–30, 31–60 e mais de 60 dias). O CSV é gerado no navegador (nada vai para a rede). A área de trabalho **não altera dados financeiros**: "Ver em Mensalidades" leva à aba já filtrada pelo aluno e pela competência, onde o pagamento é registrado.

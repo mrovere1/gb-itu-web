@@ -1,13 +1,13 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=e722f3b6a1';
-import { loadFirebase } from './firebase.js?v=e722f3b6a1';
-import { createApi } from './api.js?v=e722f3b6a1';
-import { createAuth } from './auth.js?v=e722f3b6a1';
-import { createDashboard } from './dashboard.js?v=e722f3b6a1';
-import { createStudentForm } from './student-form.js?v=e722f3b6a1';
-import { createStudents } from './students.js?v=e722f3b6a1';
-import { createMensalidades } from './mensalidades.js?v=e722f3b6a1';
-import { createApp } from './app.js?v=e722f3b6a1';
+import { CONFIG } from './config.js?v=1137cff686';
+import { loadFirebase } from './firebase.js?v=1137cff686';
+import { createApi } from './api.js?v=1137cff686';
+import { createAuth } from './auth.js?v=1137cff686';
+import { createDashboard } from './dashboard.js?v=1137cff686';
+import { createStudentForm } from './student-form.js?v=1137cff686';
+import { createStudents } from './students.js?v=1137cff686';
+import { createMensalidades } from './mensalidades.js?v=1137cff686';
+import { createApp } from './app.js?v=1137cff686';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -33,7 +33,18 @@ const api = createApi({
   clearTimeout: (id) => window.clearTimeout(id),
 });
 
-const dashboard = createDashboard({ doc: document, api, openStudent: (id) => app.openStudent(id) });
+// Exportação CSV: gera o arquivo no navegador (nada sai para a rede).
+function download(filename, text) {
+  const url = window.URL.createObjectURL(new window.Blob([text], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+const dashboard = createDashboard({ doc: document, api, openStudent: (id) => app.openStudent(id), openMensalidade: (f) => app.openMensalidade(f), download });
 const students = createStudents({
   doc: document,
   api,

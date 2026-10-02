@@ -50,6 +50,7 @@ export function createDom() {
     hidden: false,
     getElementById,
     createElement: (tag) => make('novo-' + tag, tag),
+    createElementNS: (ns, tag) => make('novo-' + tag, tag),
     addEventListener(ev, fn) { (docListeners[ev] = docListeners[ev] || []).push(fn); },
   };
 

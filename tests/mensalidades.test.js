@@ -100,6 +100,20 @@ test('totais da competência e estado vazio', async () => {
   assert.deepEqual(b.dom.visible(PARTS), ['mens-empty']);
 });
 
+test('openWith abre a lista já na competência e com a busca pedida e não recarrega de novo ao ativar', async () => {
+  const { dom, calls, mens } = setup((a, args) => ok(LIST([item()], { competencia: args[0].competencia })));
+  mens.openWith({ competencia: '2026-08', busca: 'Ana Ficticia' });
+  mens.activate();
+  await flush();
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].args[0], { competencia: '2026-08', busca: 'Ana Ficticia', status: '' });
+  assert.equal(dom.$('mens-q').value, 'Ana Ficticia');
+  mens.openWith({ competencia: 'lixo', busca: 'x'.repeat(100) });
+  await flush();
+  assert.equal(calls[1].args[0].competencia, '2026-08', 'competência inválida é ignorada');
+  assert.equal(calls[1].args[0].busca.length, 60);
+});
+
 test('filtros: buscar, status e competência recarregam; competência inválida é ignorada', async () => {
   const { dom, calls, mens } = setup((a, args) => ok(LIST([item()], { competencia: args[0].competencia || '2026-09' })));
   mens.activate();
@@ -357,7 +371,7 @@ function appSetup(perfil) {
   const api = { call: async () => ok({ usuario: { nome: 'Ana', perfil } }) };
   const dash = { load: async () => ({ ok: true }), reset() {} };
   const students = { activate() {}, reset() {} };
-  const mensalidades = { activate: () => events.push('activate'), reset: () => events.push('reset') };
+  const mensalidades = { activate: () => events.push('activate'), reset: () => events.push('reset'), openWith: (f) => events.push(['openWith', f]) };
   const app = createApp({ doc: dom.doc, auth, api, dashboard: dash, students, mensalidades });
   app.start();
   return { dom, events, emit: (u) => onUser(u) };
@@ -377,6 +391,23 @@ test('aba Mensalidades só aparece para Administrador, Gestor e Financeiro e ati
       assert.deepEqual(events, ['activate']);
     }
   }
+});
+
+test('abrir Mensalidades filtrada (vindo da área de trabalho): aplica o filtro e mostra a aba', async () => {
+  const dom = createDom();
+  const events = [];
+  let onUser = null;
+  const auth = { start: (cb) => { onUser = cb; }, login: async () => {}, logout: async () => true, touch() {}, checkIdle: async () => false };
+  const api = { call: async () => ok({ usuario: { nome: 'Ana', perfil: 'Administrador' } }) };
+  const mensalidades = { activate: () => events.push('activate'), reset() {}, openWith: (f) => events.push(['openWith', f]) };
+  const app = createApp({ doc: dom.doc, auth, api, dashboard: { load: async () => ({ ok: true }), reset() {} }, students: { activate() {}, reset() {} }, mensalidades });
+  app.start();
+  onUser({ uid: 'u' });
+  await flush();
+  app.openMensalidade({ competencia: '2026-09', busca: 'Ana' });
+  assert.deepEqual(events[0], ['openWith', { competencia: '2026-09', busca: 'Ana' }]);
+  assert.equal(dom.$('view-mensalidades').hidden, false);
+  assert.equal(dom.$('view-dashboard').hidden, true);
 });
 
 test('ao sair, a aba some e a tela é limpa', async () => {

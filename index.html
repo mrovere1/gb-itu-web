@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=e722f3b6a1" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=e722f3b6a1">
-    <script src="js/framebust.js?v=e722f3b6a1"></script>
+    <link rel="icon" href="img/icone.png?v=1137cff686" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=1137cff686">
+    <script src="js/framebust.js?v=1137cff686"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=e722f3b6a1" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=1137cff686" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -51,7 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
-        <img class="brand" src="img/icone.png?v=e722f3b6a1" alt="" width="256" height="191">
+        <img class="brand" src="img/icone.png?v=1137cff686" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -109,15 +109,15 @@
               <h3 id="kpi-more-title" class="sr-only">Indicadores complementares</h3>
               <div id="kpi-more" class="kpi-grid"></div>
             </section>
+            <section class="card rev-card" aria-labelledby="chart-revenue-title">
+              <h3 id="chart-revenue-title">Receita prevista × recebida</h3>
+              <div id="chart-revenue"></div>
+            </section>
             <div class="dash-cols">
               <div class="dash-charts">
                 <section class="card" aria-labelledby="chart-status-title">
                   <h3 id="chart-status-title">Situação dos alunos</h3>
                   <div id="chart-status"></div>
-                </section>
-                <section class="card" aria-labelledby="chart-revenue-title">
-                  <h3 id="chart-revenue-title">Receita prevista × recebida</h3>
-                  <div id="chart-revenue"></div>
                 </section>
                 <section class="card" aria-labelledby="chart-occupancy-title">
                   <h3 id="chart-occupancy-title">Ocupação por turma</h3>
@@ -133,34 +133,55 @@
             </div>
           </div>
 
-          <div class="card notice">
+          <section id="ws" class="ws" aria-labelledby="ws-title" hidden>
+            <div class="ws-crumb">
+              <button id="ws-back" type="button" class="secondary">← Voltar ao painel</button>
+              <span class="muted">Início › <span id="ws-crumb-title"></span></span>
+            </div>
+            <div class="ws-head">
+              <h2 id="ws-title" tabindex="-1"></h2>
+              <span id="ws-comp" class="chip chip-neutro"></span>
+            </div>
+            <nav id="ws-switch" class="ws-switch" aria-label="Listas do painel"></nav>
+            <div id="ws-tiles" class="total-grid" aria-label="Resumo da lista"></div>
+            <form id="ws-tools" class="card filters" role="search">
+              <div class="field">
+                <label for="ws-q">Buscar por nome</label>
+                <input id="ws-q" type="search" maxlength="60" autocomplete="off">
+              </div>
+              <div class="field" id="ws-filter-box">
+                <label for="ws-filter" id="ws-filter-label">Filtro</label>
+                <select id="ws-filter"><option value="">Todas</option></select>
+              </div>
+              <div id="ws-views" class="ws-views" role="group" aria-label="Visualização" hidden>
+                <button id="ws-view-table" type="button" class="secondary" aria-pressed="true">Tabela</button>
+                <button id="ws-view-board" type="button" class="secondary" aria-pressed="false">Quadro por atraso</button>
+              </div>
+              <button id="ws-export" type="button" class="secondary">Exportar planilha (CSV)</button>
+              <span id="ws-count" class="muted" role="status" aria-live="polite"></span>
+            </form>
+            <div id="ws-bulk" class="ws-bulk" hidden>
+              <span id="ws-bulk-text"></span>
+              <button id="ws-export-selected" type="button" class="secondary">Exportar seleção</button>
+              <button id="ws-clear" type="button" class="link">Limpar seleção</button>
+            </div>
+            <div id="ws-table-wrap" class="ws-table-wrap">
+              <table id="ws-table" class="ws-table">
+                <thead id="ws-thead"></thead>
+                <tbody id="ws-tbody"></tbody>
+              </table>
+            </div>
+            <div id="ws-board" class="ws-board" hidden></div>
+            <p id="ws-empty" class="card muted" hidden></p>
+            <p id="ws-foot" class="ws-foot" role="status"></p>
+          </section>
+
+          <div id="dash-presenca" class="card notice">
             <h2>Presença</h2>
             <p id="attendance-notice"></p>
           </div>
         </section>
 
-        <div id="drawer" class="drawer" hidden>
-          <div id="drawer-backdrop" class="drawer-backdrop"></div>
-          <section id="drawer-panel" class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title" tabindex="-1">
-            <div class="toolbar-row">
-              <h3 id="drawer-title"></h3>
-              <button id="drawer-close" type="button" class="secondary">Fechar</button>
-            </div>
-            <div class="filters">
-              <div class="field">
-                <label for="drawer-q">Buscar por nome</label>
-                <input id="drawer-q" type="search" maxlength="60" autocomplete="off">
-              </div>
-              <div class="field">
-                <label for="drawer-sort">Ordenar</label>
-                <select id="drawer-sort"><option value="az">Nome (A a Z)</option><option value="za">Nome (Z a A)</option></select>
-              </div>
-            </div>
-            <p id="drawer-count" class="muted" role="status" aria-live="polite"></p>
-            <ul id="drawer-list" class="student-list"></ul>
-            <p id="drawer-empty" class="muted" hidden></p>
-          </section>
-        </div>
         </div>
 
       <div id="view-mensalidades" hidden>
@@ -392,6 +413,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=e722f3b6a1"></script>
+    <script type="module" src="js/main.js?v=1137cff686"></script>
   </body>
 </html>
