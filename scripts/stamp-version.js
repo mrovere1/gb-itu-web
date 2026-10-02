@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const STAMPED = ['index.html', 'js/main.js', 'js/dashboard.js', 'js/dashboard-admin.js', 'js/mensalidades.js'];
+const STAMPED = ['index.html', 'js/main.js', 'js/dashboard.js', 'js/dashboard-admin.js', 'js/mensalidades.js', 'js/alunofull.js'];
 const jsFiles = readdirSync(join(root, 'js')).filter((f) => f.endsWith('.js')).sort().map((f) => 'js/' + f);
 const imgFiles = readdirSync(join(root, 'img')).sort().map((f) => 'img/' + f);
 const SOURCES = ['index.html', 'css/app.css', ...jsFiles];

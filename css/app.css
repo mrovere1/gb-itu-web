@@ -370,3 +370,22 @@ button.kpi:hover .kpi-open, button.kpi:focus-visible .kpi-open { text-decoration
 .filters > button { min-height: 38px; padding: 0 16px; font-size: .9rem; }
 .dt-range { align-items: center; }
 .dt-range input { height: 28px; margin: 0; }
+
+/* Aluno Full: leitura minimalista, famílias em blocos leves */
+.af-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
+.af-search { flex: 1 1 240px; margin-bottom: 0; }
+.af-toolbar .ws-views button { min-height: 40px; }
+.af-family { margin-bottom: 20px; }
+.af-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 6px; }
+.af-name { margin: 0; font-size: 1.05rem; }
+.af-wrap { max-height: none; }
+.af-table th { background: transparent; position: static; font-weight: 600; color: var(--muted); }
+.af-student { font-weight: 600; }
+.af-table { table-layout: fixed; }
+.af-table th:nth-child(1) { width: 30%; }
+.af-table th:nth-child(2) { width: 10%; }
+.af-table th:nth-child(3) { width: 14%; }
+.af-table th:nth-child(4) { width: 16%; }
+.af-table th:nth-child(5) { width: 6%; }
+.af-table th:nth-child(6) { width: 11%; }
+.af-table th:nth-child(7) { width: 13%; }

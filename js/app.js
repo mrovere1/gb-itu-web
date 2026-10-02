@@ -14,9 +14,10 @@ const UNEXPECTED_RESPONSE = 'O servidor respondeu de forma inesperada. Tente nov
 const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'touchstart', 'scroll'];
 
 const MENSALIDADES_PERFIS = ['Administrador', 'Gestor', 'Financeiro']; // só a vitrine: o servidor é quem autoriza
-const TABS = [['dashboard', 'tab-dashboard', 'view-dashboard'], ['students', 'tab-students', 'view-students'], ['mensalidades', 'tab-mensalidades', 'view-mensalidades']];
+const ALUNOFULL_PERFIS = ['Administrador'];   // só a vitrine: o servidor é quem autoriza
+const TABS = [['dashboard', 'tab-dashboard', 'view-dashboard'], ['students', 'tab-students', 'view-students'], ['mensalidades', 'tab-mensalidades', 'view-mensalidades'], ['alunofull', 'tab-alunofull', 'view-alunofull']];
 
-export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {}, openWith() {} } }) {
+export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {}, openWith() {} }, alunofull = { activate() {}, reset() {} } }) {
   const $ = (id) => doc.getElementById(id);
   let busy = false;           // login em andamento
   let signedIn = false;       // já há usuário do Firebase (evita carregar a sessão duas vezes)
@@ -35,6 +36,7 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     });
     if (view === 'students') students.activate();
     if (view === 'mensalidades') mensalidades.activate();
+    if (view === 'alunofull') alunofull.activate();
   }
 
   /** Abre o cadastro de um aluno a partir do painel. */
@@ -72,7 +74,9 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     dashboard.reset();
     students.reset();
     mensalidades.reset();
+    alunofull.reset();
     $('tab-mensalidades').hidden = true;
+    $('tab-alunofull').hidden = true;
     showTab('dashboard');
     $('user-line').textContent = '';
     const message = pendingMessage;
@@ -107,6 +111,7 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
         const usuario = resp.data.usuario;
         $('user-line').textContent = usuario.nome + ' · ' + usuario.perfil;
         $('tab-mensalidades').hidden = !MENSALIDADES_PERFIS.includes(usuario.perfil);
+        $('tab-alunofull').hidden = !ALUNOFULL_PERFIS.includes(usuario.perfil);
         show('view-app');
         const result = await dashboard.load();
         if (mine === generation && !result.ok && AUTH_FAILURES[result.code]) await endSession(AUTH_FAILURES[result.code]);
@@ -183,6 +188,7 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     $('tab-dashboard').addEventListener('click', () => showTab('dashboard'));
     $('tab-students').addEventListener('click', () => showTab('students'));
     $('tab-mensalidades').addEventListener('click', () => showTab('mensalidades'));
+    $('tab-alunofull').addEventListener('click', () => showTab('alunofull'));
     $('logout').addEventListener('click', onLogout);
     $('session-logout').addEventListener('click', onLogout);
     $('session-retry').addEventListener('click', () => { loadSession(); });
