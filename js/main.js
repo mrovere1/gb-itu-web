@@ -1,15 +1,15 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=7581dfad66';
-import { loadFirebase } from './firebase.js?v=7581dfad66';
-import { createApi } from './api.js?v=7581dfad66';
-import { createAuth } from './auth.js?v=7581dfad66';
-import { createDashboard } from './dashboard.js?v=7581dfad66';
-import { createStudentForm } from './student-form.js?v=7581dfad66';
-import { createStudents } from './students.js?v=7581dfad66';
-import { createMensalidades } from './mensalidades.js?v=7581dfad66';
-import { createAlunoFull } from './alunofull.js?v=7581dfad66';
-import { createDataTable } from './data-table.js?v=7581dfad66';
-import { createApp } from './app.js?v=7581dfad66';
+import { CONFIG } from './config.js?v=459aba66e2';
+import { loadFirebase } from './firebase.js?v=459aba66e2';
+import { createApi } from './api.js?v=459aba66e2';
+import { createAuth } from './auth.js?v=459aba66e2';
+import { createDashboard } from './dashboard.js?v=459aba66e2';
+import { createStudentForm } from './student-form.js?v=459aba66e2';
+import { createStudents } from './students.js?v=459aba66e2';
+import { createMensalidades } from './mensalidades.js?v=459aba66e2';
+import { createAlunoFull } from './alunofull.js?v=459aba66e2';
+import { createDataTable } from './data-table.js?v=459aba66e2';
+import { createApp } from './app.js?v=459aba66e2';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -59,6 +59,6 @@ const students = createStudents({
   createTable,
 });
 const mensalidades = createMensalidades({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code), createTable });
-const alunofull = createAlunoFull({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code), createTable });
+const alunofull = createAlunoFull({ doc: document, api, onAuthFailure: (code) => app.onAuthFailure(code), createTable, openStudent: (id) => app.openStudent(id) });
 app = createApp({ doc: document, auth, api, dashboard, students, mensalidades, alunofull });
 app.start();

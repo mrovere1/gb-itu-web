@@ -1,6 +1,6 @@
 // Painel inicial. Texto do servidor entra sempre por textContent. Não importa nada: recebe doc e api por injeção.
 
-import { createAdminDashboard } from './dashboard-admin.js?v=7581dfad66';
+import { createAdminDashboard } from './dashboard-admin.js?v=459aba66e2';
 
 const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
 const COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;

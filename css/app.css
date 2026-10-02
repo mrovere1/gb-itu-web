@@ -389,3 +389,5 @@ button.kpi:hover .kpi-open, button.kpi:focus-visible .kpi-open { text-decoration
 .af-table th:nth-child(5) { width: 6%; }
 .af-table th:nth-child(6) { width: 11%; }
 .af-table th:nth-child(7) { width: 13%; }
+.af-sub { margin: 16px 0 8px; font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.af-student.dt-link { font-weight: 600; }

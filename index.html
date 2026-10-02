@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=7581dfad66" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=7581dfad66">
-    <script src="js/framebust.js?v=7581dfad66"></script>
+    <link rel="icon" href="img/icone.png?v=459aba66e2" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=459aba66e2">
+    <script src="js/framebust.js?v=459aba66e2"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=7581dfad66" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=459aba66e2" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -51,7 +51,7 @@
     <div id="view-app" hidden>
       <a class="skip" href="#main">Ir para o conteúdo</a>
       <header class="topbar">
-        <img class="brand" src="img/icone.png?v=7581dfad66" alt="" width="256" height="191">
+        <img class="brand" src="img/icone.png?v=459aba66e2" alt="" width="256" height="191">
         <h1 id="school">Sistema Interno</h1>
         <span id="env" class="badge" hidden></span>
         <span id="user-line" class="user-line"></span>
@@ -278,6 +278,7 @@
       </div>
 
       <div id="view-alunofull" hidden>
+        <div id="af-inner">
         <div class="af-toolbar">
           <div id="af-q-box" class="field af-search">
             <label for="af-q">Buscar aluno ou família</label>
@@ -302,11 +303,91 @@
           <p>Nenhum aluno cadastrado ainda.</p>
         </section>
         <div id="af-ready" hidden>
+          <p id="af-notice" class="success" role="status" hidden></p>
           <p id="af-avisos" class="muted" role="status" hidden></p>
           <p id="af-count" class="muted" role="status" aria-live="polite"></p>
           <p id="af-nomatch" class="card muted" hidden>Nenhum aluno ou família encontrado para esta busca.</p>
           <div id="af-groups"></div>
           <div id="af-table-root" class="dt-root" hidden></div>
+        </div>
+        </div>
+
+        <div id="af-dialog" class="drawer" hidden>
+          <div id="af-dialog-backdrop" class="drawer-backdrop"></div>
+          <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="af-dialog-title">
+            <h3 id="af-dialog-title"></h3>
+            <p id="af-dialog-info" class="muted"></p>
+            <div id="af-dialog-error" class="form-error" role="alert" tabindex="-1" hidden></div>
+            <form id="af-form" novalidate>
+              <h4 class="af-sub">Família</h4>
+              <div class="field">
+                <label for="af-f-modo">Responsável</label>
+                <select id="af-f-modo"></select>
+              </div>
+              <div id="af-f-aluno-box" hidden>
+                <div class="field">
+                  <label for="af-f-aluno-q">Buscar aluno</label>
+                  <input id="af-f-aluno-q" type="search" maxlength="60" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="af-f-aluno">Aluno responsável</label>
+                  <select id="af-f-aluno"></select>
+                </div>
+              </div>
+              <div id="af-f-ext-box" hidden>
+                <div class="field">
+                  <label for="af-f-ext">Responsável externo</label>
+                  <select id="af-f-ext"></select>
+                </div>
+              </div>
+              <div id="af-f-novo-box" hidden>
+                <div class="field">
+                  <label for="af-f-nome">Nome do responsável</label>
+                  <input id="af-f-nome" maxlength="120" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="af-f-tel">Telefone (opcional)</label>
+                  <input id="af-f-tel" type="tel" maxlength="20" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="af-f-email">E-mail (opcional)</label>
+                  <input id="af-f-email" type="email" maxlength="120" autocomplete="off">
+                </div>
+              </div>
+              <div id="af-f-parent-box" class="field" hidden>
+                <label for="af-f-parent">Parentesco (opcional)</label>
+                <input id="af-f-parent" maxlength="40" autocomplete="off">
+              </div>
+
+              <h4 class="af-sub">Plano e valor</h4>
+              <div class="field">
+                <label for="af-f-plano">Plano</label>
+                <select id="af-f-plano"></select>
+              </div>
+              <div class="field">
+                <label for="af-f-valor">Valor mensal (R$)</label>
+                <input id="af-f-valor" inputmode="decimal" maxlength="12" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="af-f-dia">Dia do vencimento</label>
+                <input id="af-f-dia" type="number" min="1" max="31" step="1">
+              </div>
+              <div class="field">
+                <label for="af-f-isencao">Isenção</label>
+                <select id="af-f-isencao"></select>
+              </div>
+              <div class="field">
+                <label for="af-f-pago">Pago até (pacote)</label>
+                <input id="af-f-pago" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+              </div>
+              <p id="af-dialog-hint" class="muted"></p>
+              <div class="actions">
+                <button id="af-save" type="submit">Salvar</button>
+                <button id="af-cancel" type="button" class="secondary">Fechar</button>
+                <button id="af-open-student" type="button" class="link">Abrir cadastro completo</button>
+              </div>
+            </form>
+          </section>
         </div>
       </div>
 
@@ -457,6 +538,6 @@
       </main>
     </div>
 
-    <script type="module" src="js/main.js?v=7581dfad66"></script>
+    <script type="module" src="js/main.js?v=459aba66e2"></script>
   </body>
 </html>
