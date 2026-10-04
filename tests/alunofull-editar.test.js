@@ -352,6 +352,22 @@ test('nada do servidor entra como HTML no painel (nomes só como texto)', async 
 });
 
 // ---------- Registrar pacote ----------
+test('"Pago até" é uma lista de meses com "Sem pacote", mantendo o valor atual mesmo se estiver fora da faixa', async () => {
+  const { dom, open } = setup();
+  await open('Ana Ficticia');
+  const values = dom.$('af-f-pago').options.map((o) => o.value);
+  assert.equal(values[0], '');
+  assert.equal(dom.$('af-f-pago').options[0].textContent, 'Sem pacote');
+  assert.ok(values.includes('2027-01'));
+  assert.equal(dom.$('af-f-pago').value, '2027-01');
+  const antigo = DATA();
+  antigo.alunos[1] = aluno('ALU-2', 'Ana Ficticia', { familia_id: 'RES-1', papel: 'dependente', matricula: mat({ pago_ate: '2019-05' }) });
+  const b = setup(() => ok(antigo));
+  await b.open('Ana Ficticia');
+  assert.ok(b.dom.$('af-f-pago').options.some((o) => o.value === '2019-05'));
+  assert.equal(b.dom.$('af-f-pago').value, '2019-05');
+});
+
 test('botão "Registrar pacote": só para aluno com matrícula Ativa e sem isenção', async () => {
   const data = DATA();
   data.alunos.push(aluno('ALU-5', 'Isento Ficticio', { matricula: mat({ tipo_isencao: 'Bolsa / cortesia' }) }), aluno('ALU-6', 'Suspenso Ficticio', { matricula: mat({ status: 'Inativa' }) }));

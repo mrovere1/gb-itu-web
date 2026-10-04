@@ -45,6 +45,16 @@ test('abrir: título com o aluno, campos com padrões seguros e tipo de pagament
   assert.ok(dom.$('pk-f-modo').focused > 0);
 });
 
+test('primeiro mês coberto é uma lista de meses (não um campo de digitar), com o mês sugerido selecionado', () => {
+  const { dom, open } = setup();
+  open(ITEM({ pago_ate: '2026-12' }));
+  const values = dom.$('pk-f-mes').options.map((o) => o.value);
+  assert.ok(values.includes('2026-09') && values.includes('2027-01') && values.includes('2025-01'));
+  assert.equal(dom.$('pk-f-mes').options.find((o) => o.value === '2027-01').textContent, 'Janeiro/2027');
+  assert.equal(dom.$('pk-f-mes').value, '2027-01');
+  assert.deepEqual(values, values.slice().sort());
+});
+
 test('mês inicial padrão: o mês seguinte ao "pago até" quando ele ainda vale; senão o mês de hoje', () => {
   const a = setup();
   a.open(ITEM({ pago_ate: '2026-12' }));

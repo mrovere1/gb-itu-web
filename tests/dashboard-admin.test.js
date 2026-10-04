@@ -10,6 +10,17 @@ import { ADMIN, ok, flat } from './helpers/dash-fixtures.js';
 
 const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
 
+/** Escolhe meses no seletor de competência: abre, marca só os pedidos e aplica. */
+function pick(dom, isos) {
+  dom.click('dash-comp-btn');
+  dom.$('dash-comp-list').children.forEach((label) => {
+    const box = label.children[0];
+    box.checked = isos.includes(box.value);
+    box.listeners.change();
+  });
+  dom.click('dash-comp-apply');
+}
+
 function setup(respond = () => ok(ADMIN)) {
   const dom = createDom();
   const calls = [];
@@ -39,7 +50,7 @@ test('administrador: mostra cartões, gráficos e aniversariantes; esconde o qua
   assert.equal(dom.$('dash-admin').hidden, false);
   assert.equal(dom.$('dash-basic').hidden, true);
   assert.equal(dom.$('dash-comp-box').hidden, false);
-  assert.equal(dom.$('dash-comp').value, '2026-10');
+  assert.equal(dom.$('dash-comp-btn').textContent, 'Outubro/2026');
   assert.equal(dom.$('kpi-main').children.length, 4);
   assert.equal(dom.$('kpi-more').children.length, 3);
   assert.equal(dom.$('ws').hidden, true);
@@ -125,10 +136,9 @@ test('na área de trabalho, trocar a competência recarrega e a lista aberta é 
   await dashboard.load();
   card('kpi-main', 1).listeners.click();
   assert.equal(dom.$('ws-tbody').children.length, 4);
-  dom.$('dash-comp').value = '2026-09';
-  dom.$('dash-comp').listeners.change();
+  pick(dom, ['2026-09']);
   await flush();
-  assert.deepEqual(calls[1].args, [{ competencia: '2026-09' }]);
+  assert.deepEqual(calls[1].args, [{ competencias: ['2026-09'] }]);
   assert.equal(dom.$('ws').hidden, false, 'continua na área de trabalho');
   assert.equal(dom.$('ws-tbody').children.length, 1);
   assert.equal(dom.$('dash-admin').hidden, true);
@@ -206,21 +216,38 @@ test('avisos de qualidade aparecem num quadro e somem quando não há avisos', a
   assert.equal(b.dom.$('dash-avisos-box').hidden, true);
 });
 
-test('competência: trocar no seletor recarrega com a competência; valor inválido é ignorado', async () => {
-  const { dom, calls, dashboard } = setup((n, args) => ok({ ...ADMIN, competencia: args[0] ? args[0].competencia : '2026-10' }));
+test('competência: vários meses recarregam com a lista e "Atualizar" mantém a seleção; o rótulo mostra o período', async () => {
+  const { dom, calls, dashboard } = setup((n, args) => ok({ ...ADMIN, competencia: args[0] ? args[0].competencias.slice(-1)[0] : '2026-10', competencias: args[0] ? args[0].competencias : ['2026-10'] }));
   await dashboard.load();
-  dom.$('dash-comp').value = '2026-08';
-  dom.$('dash-comp').listeners.change();
+  pick(dom, ['2026-08', '2026-09']);
   await flush();
-  assert.deepEqual(calls[1], { acao: 'dashboard.obter', args: [{ competencia: '2026-08' }] });
-  dom.$('dash-comp').value = '2026-13';
-  dom.$('dash-comp').listeners.change();
-  await flush();
-  assert.equal(calls.length, 2);
-  assert.equal(dom.$('dash-comp').value, '2026-08');
+  assert.deepEqual(calls[1], { acao: 'dashboard.obter', args: [{ competencias: ['2026-08', '2026-09'] }] });
+  assert.equal(dom.$('dash-comp-btn').textContent, 'ago/26–set/26 (2 meses)');
   dom.click('dash-refresh');
   await flush();
-  assert.deepEqual(calls[2].args, [{ competencia: '2026-08' }]);
+  assert.deepEqual(calls[2].args, [{ competencias: ['2026-08', '2026-09'] }]);
+  pick(dom, ['2026-07', '2026-08', '2026-09', '2026-10', '2026-11']);
+  await flush();
+  assert.equal(calls[3].args[0].competencias.length, 5);
+  assert.equal(dom.$('dash-comp-btn').textContent, 'Todos os meses (5)');
+});
+
+test('aniversariantes: com vários meses o título diz de qual mês são; com um mês continua "do mês"', async () => {
+  const multi = setup(() => ok({ ...ADMIN, competencias: ['2026-08', '2026-09'], aniversariantesCompetencia: '2026-10' }));
+  await multi.dashboard.load();
+  assert.equal(multi.dom.$('bday-title').textContent, 'Aniversariantes de Outubro/2026');
+  const one = setup();
+  await one.dashboard.load();
+  assert.equal(one.dom.$('bday-title').textContent, 'Aniversariantes do mês');
+});
+
+test('competência: fechar o seletor sem aplicar não recarrega', async () => {
+  const { dom, calls, dashboard } = setup();
+  await dashboard.load();
+  dom.click('dash-comp-btn');
+  dom.click('dash-comp-cancel');
+  await flush();
+  assert.equal(calls.length, 1);
 });
 
 test('Atualizar com o painel aberto mantém o conteúdo, desabilita o botão e o reabilita ao terminar', async () => {
@@ -262,7 +289,7 @@ test('reset apaga o painel completo e fecha a área de trabalho do usuário ante
   ['kpi-main', 'kpi-more', 'bday-list', 'chart-status', 'chart-revenue', 'ws-tbody', 'ws-tiles'].forEach((id) => assert.equal(dom.$(id).children.length, 0, id));
   assert.equal(dom.$('dash-avisos-box').hidden, true);
   assert.equal(dom.$('dash-comp-box').hidden, true);
-  assert.equal(dom.$('dash-comp').value, '');
+  assert.equal(dom.$('dash-comp-btn').textContent, 'Escolha o mês');
   assert.equal(dom.$('dash-basic').hidden, false);
   assert.equal(dom.$('dash-refresh').disabled, false);
 });

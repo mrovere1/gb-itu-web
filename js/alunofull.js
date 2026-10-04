@@ -1,8 +1,10 @@
 // Aba "Aluno Full" (só Administrador): alunos agrupados por família, com plano, valor e pendências.
 // Ao clicar num aluno abre um painel para definir o responsável da família e editar plano, valor, dia, isenção e pago até.
-// Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
+// Recebe doc e api por injeção; só importa a lista de meses (month-select). Texto do servidor entra sempre por textContent.
 // A aba só aparece para o Administrador, mas quem decide é o servidor (nega os demais perfis e valida tudo de novo).
 // Cobranças já geradas não mudam ao editar o valor: o painel avisa que vale para as próximas.
+
+import { monthChoices, fullLabel, todayIso } from './month-select.js?v=580d072e4f';
 
 const PARTS = ['af-loading', 'af-error', 'af-empty', 'af-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -139,7 +141,8 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     const isencoes = (data.opcoes && data.opcoes.isencoes) || [];
     const current = m ? m.tipo_isencao : '';
     setOptions($('af-f-isencao'), [['', 'Nenhuma']].concat(isencoes.concat(current && !isencoes.includes(current) ? [current] : []).map((v) => [v, v])), current);
-    $('af-f-pago').value = m ? m.pago_ate : '';
+    const pago = m ? m.pago_ate : '';
+    setOptions($('af-f-pago'), [['', 'Sem pacote']].concat(monthChoices(todayIso(), pago ? [pago] : []).map((iso) => [iso, fullLabel(iso)])), pago);
     $('af-open-pkg').hidden = !(m && m.status === 'Ativa' && !m.tipo_isencao); // pacote só para matrícula ativa e sem isenção
     $('af-dialog-hint').textContent = m ? 'Mudar o valor vale a partir das próximas cobranças: as já geradas não mudam (corrija em Mensalidades, se precisar).' : 'Este aluno ainda não tem matrícula: preencha o valor para criá-la.';
   }

@@ -37,6 +37,12 @@ test('utilitários: dias entre datas, data BR e células de CSV seguras', () => 
   assert.equal(csvCell(null), '');
 });
 
+test('abrir com vários meses: a competência vira o período escolhido', () => {
+  const s = setup();
+  open(s, 'inadimplentes', { ...s.data, competencias: ['2026-08', '2026-09'], periodoRotulo: 'ago/26–set/26' });
+  assert.equal(s.dom.$('ws-comp').textContent, 'Competências ago/26–set/26');
+});
+
 test('abrir: mostra a área, esconde o painel, foca o título e informa a competência', () => {
   const s = setup();
   open(s);

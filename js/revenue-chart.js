@@ -154,7 +154,7 @@ export function renderRevenueCard({ doc, box, chart }) {
   }
   meses.forEach((m, i) => {
     const x0 = PLOT.left + gw * i;
-    const isLast = i === meses.length - 1;
+    const isLast = typeof m.selecionado === 'boolean' ? m.selecionado : i === meses.length - 1; // vários meses escolhidos: todos em destaque
     const g = svg('g', { class: 'rev-group' + (isLast ? ' rev-group-selected' : ''), tabindex: 0, role: 'img', 'aria-label': callText(m) });
     g.appendChild(svg('title', {}, callText(m)));
     g.appendChild(svg('rect', { x: x0.toFixed(1), y: PLOT.top, width: gw.toFixed(1), height: ph, class: 'rev-band' }));

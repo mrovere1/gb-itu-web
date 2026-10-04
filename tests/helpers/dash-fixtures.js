@@ -33,7 +33,7 @@ export const ADMIN = {
   alunosPorStatus: [{ status: 'Ativo', total: 3 }], totalAlunos: 4,
   atualizadoEm: '2026-10-05T15:00:00.000Z', atualizadoEmLocal: '05/10/2026 12:00:00',
   presenca: { fonte: 'physical_card', aviso: 'Presença por cartões.' },
-  completo: true, competencia: '2026-10', hoje: '2026-10-05', avisos: [], aniversariantesEstado: 'ok',
+  completo: true, competencia: '2026-10', competencias: ['2026-10'], periodoRotulo: 'out/26', opcoes: { competencias: ['2026-07', '2026-08', '2026-09', '2026-10', '2026-11'] }, hoje: '2026-10-05', avisos: [], aniversariantesEstado: 'ok',
   indicadores: {
     principais: [
       ind('alunosAtivos', 'Alunos ativos', { estado: 'ok', valor: 3, secundario: 'de 4 cadastrados', mensagem: null, detalhe: 'alunosAtivos' }),

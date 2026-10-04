@@ -312,7 +312,8 @@ export function createWorkspace({ doc, openStudent = () => {}, openMensalidade =
     const rows = visibleRows();
     $('ws-title').textContent = cfg.label;
     $('ws-crumb-title').textContent = cfg.label;
-    $('ws-comp').textContent = 'Competência ' + compBR(state.data.competencia);
+    const d = state.data;
+    $('ws-comp').textContent = Array.isArray(d.competencias) && d.competencias.length > 1 && d.periodoRotulo ? 'Competências ' + d.periodoRotulo : 'Competência ' + compBR(d.competencia);
     renderSwitch();
     renderTools();
     renderTiles(state.rows);

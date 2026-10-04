@@ -1,14 +1,15 @@
 // Painel inicial. Texto do servidor entra sempre por textContent. Não importa nada: recebe doc e api por injeção.
 
-import { createAdminDashboard } from './dashboard-admin.js?v=e22b084d2f';
+import { createAdminDashboard } from './dashboard-admin.js?v=580d072e4f';
+import { createMonthSelect } from './month-select.js?v=580d072e4f';
 
 const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
-const COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export function createDashboard({ doc, api, openStudent = () => {}, openMensalidade = () => {}, download = () => {} }) {
   const $ = (id) => doc.getElementById(id);
   const admin = createAdminDashboard({ doc, openStudent, openMensalidade, download });
-  let competence = null; // só o Administrador escolhe competência; nos demais perfis fica nulo
+  let competencias = null; // lista de meses (AAAA-MM); só o Administrador escolhe; nos demais perfis fica nula
+  const monthSelect = createMonthSelect({ doc, id: 'dash-comp', onChange: (list) => { competencias = list; load(); } });
   let loadId = 0; // cada carregamento tem um número; só o mais recente (e ainda válido) pode mexer na tela
 
   function show(name) {
@@ -43,11 +44,13 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
     $('dash-basic').hidden = full;
     $('dash-comp-box').hidden = !full;
     if (full) {
-      competence = data.competencia;
-      $('dash-comp').value = data.competencia;
+      competencias = Array.isArray(data.competencias) && data.competencias.length ? data.competencias : [data.competencia];
+      monthSelect.setOptions(data.opcoes && Array.isArray(data.opcoes.competencias) ? data.opcoes.competencias : competencias);
+      monthSelect.setValue(competencias);
       admin.render(data);
     } else {
-      competence = null;
+      competencias = null;
+      monthSelect.reset();
       admin.reset();
     }
 
@@ -80,8 +83,8 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
     $('updated').textContent = '';
     $('dash-error-msg').textContent = '';
     $('dash-error-ref').textContent = '';
-    competence = null;
-    $('dash-comp').value = '';
+    competencias = null;
+    monthSelect.reset();
     $('dash-comp-box').hidden = true;
     admin.reset(); // antes de restaurar o quadro básico: a área de trabalho devolve as partes que escondeu
     $('dash-basic').hidden = false;
@@ -100,7 +103,7 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
     if (refreshing) busy(true);
     else show('dash-loading');
     try {
-      const resp = await api.call('dashboard.obter', competence ? [{ competencia: competence }] : []);
+      const resp = await api.call('dashboard.obter', competencias ? [{ competencias }] : []);
       if (mine !== loadId) return { ok: false, code: 'STALE' };
       if (resp.ok) {
         render(resp.data);
@@ -123,12 +126,6 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
 
   $('dash-retry').addEventListener('click', () => { load(); });
   $('dash-refresh').addEventListener('click', () => { load(); });
-  $('dash-comp').addEventListener('change', () => {
-    const value = $('dash-comp').value;
-    if (!COMPETENCIA.test(value) || value === competence) { $('dash-comp').value = competence || ''; return; }
-    competence = value;
-    load();
-  });
 
   return { load, reset };
 }

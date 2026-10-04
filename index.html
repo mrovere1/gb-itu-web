@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=e22b084d2f" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=e22b084d2f">
-    <script src="js/framebust.js?v=e22b084d2f"></script>
+    <link rel="icon" href="img/icone.png?v=580d072e4f" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=580d072e4f">
+    <script src="js/framebust.js?v=580d072e4f"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=e22b084d2f" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=580d072e4f" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -53,7 +53,7 @@
       <div class="shell">
         <aside id="sidebar" class="sidebar" data-open="false">
           <div class="side-brand">
-            <img class="brand" src="img/icone.png?v=e22b084d2f" alt="" width="256" height="191">
+            <img class="brand" src="img/icone.png?v=580d072e4f" alt="" width="256" height="191">
             <div class="side-title">
               <h1 id="school">Sistema Interno</h1>
               <span id="env" class="badge" hidden></span>
@@ -75,7 +75,7 @@
         <div class="content">
           <header class="topbar">
             <button id="nav-toggle" type="button" class="nav-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Menu"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-            <img class="brand" src="img/icone.png?v=e22b084d2f" alt="" width="256" height="191">
+            <img class="brand" src="img/icone.png?v=580d072e4f" alt="" width="256" height="191">
             <span class="topbar-name">GB Itu</span>
           </header>
 
@@ -96,8 +96,20 @@
             <h2 id="dash-title">Visão geral</h2>
             <div class="dash-controls">
               <div class="field" id="dash-comp-box" hidden>
-                <label for="dash-comp">Competência</label>
-                <input id="dash-comp" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+                <label for="dash-comp-btn">Competência</label>
+                <div id="dash-comp" class="ms">
+                  <button id="dash-comp-btn" type="button" class="ms-btn secondary" aria-haspopup="true" aria-expanded="false"></button>
+                  <div id="dash-comp-backdrop" class="ms-backdrop" hidden></div>
+                  <div id="dash-comp-panel" class="ms-panel" role="group" aria-label="Meses" hidden>
+                    <label class="ms-all"><input id="dash-comp-all" type="checkbox"><span>Todos os meses</span></label>
+                    <div id="dash-comp-list" class="ms-list"></div>
+                    <p id="dash-comp-msg" class="ms-msg" role="alert" hidden></p>
+                    <div class="ms-actions">
+                      <button id="dash-comp-apply" type="button">Aplicar</button>
+                      <button id="dash-comp-cancel" type="button" class="secondary">Cancelar</button>
+                    </div>
+                  </div>
+                </div>
               </div>
               <button id="dash-refresh" type="button">Atualizar</button>
             </div>
@@ -203,8 +215,20 @@
         <div id="view-mensalidades-inner">
           <form id="mens-filter" class="card filters" role="search">
             <div class="field">
-              <label for="mens-comp">Competência</label>
-              <input id="mens-comp" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+              <label for="mens-comp-btn">Competência</label>
+              <div id="mens-comp" class="ms">
+                  <button id="mens-comp-btn" type="button" class="ms-btn secondary" aria-haspopup="true" aria-expanded="false"></button>
+                  <div id="mens-comp-backdrop" class="ms-backdrop" hidden></div>
+                  <div id="mens-comp-panel" class="ms-panel" role="group" aria-label="Meses" hidden>
+                    <label class="ms-all"><input id="mens-comp-all" type="checkbox"><span>Todos os meses</span></label>
+                    <div id="mens-comp-list" class="ms-list"></div>
+                    <p id="mens-comp-msg" class="ms-msg" role="alert" hidden></p>
+                    <div class="ms-actions">
+                      <button id="mens-comp-apply" type="button">Aplicar</button>
+                      <button id="mens-comp-cancel" type="button" class="secondary">Cancelar</button>
+                    </div>
+                  </div>
+                </div>
             </div>
             <div class="field">
               <label for="mens-q">Buscar por nome</label>
@@ -392,7 +416,7 @@
               </div>
               <div class="field">
                 <label for="af-f-pago">Pago até (pacote)</label>
-                <input id="af-f-pago" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+                <select id="af-f-pago"></select>
               </div>
               <p id="af-dialog-hint" class="muted"></p>
               <div class="actions">
@@ -422,7 +446,7 @@
               </div>
               <div class="field">
                 <label for="pk-f-mes">Primeiro mês coberto</label>
-                <input id="pk-f-mes" type="month" min="2020-01" pattern="\d{4}-\d{2}" placeholder="AAAA-MM">
+                <select id="pk-f-mes"></select>
               </div>
               <div class="field">
                 <label for="pk-f-meses">Quantidade de meses (1 a 24)</label>
@@ -599,6 +623,6 @@
       </div>
     </div>
 
-    <script type="module" src="js/main.js?v=e22b084d2f"></script>
+    <script type="module" src="js/main.js?v=580d072e4f"></script>
   </body>
 </html>

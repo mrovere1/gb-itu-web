@@ -107,6 +107,12 @@ test('colunas: eixo com linhas de grade e rótulos, um grupo por mês, o último
   assert.deepEqual(groups.map((g) => g.children[g.children.length - 1].textContent), ['mai/26', 'jun/26', 'jul/26', 'ago/26', 'set/26', 'out/26']);
 });
 
+test('colunas: com vários meses escolhidos, todos os meses selecionados ficam em destaque', () => {
+  const chart = { ...CHART, meses: CHART.meses.map((m, i) => ({ ...m, selecionado: i === 3 || i === 4 })) };
+  const groups = draw(chart).right.children[1].children.filter((n) => n.tag === 'g');
+  assert.deepEqual(groups.map((g) => g.getAttribute('class').includes('rev-group-selected')), [false, false, false, true, true, false]);
+});
+
 test('barras na mesma escala: altura proporcional ao valor, previsto cinza e recebido vermelho', () => {
   const { right } = draw();
   const groups = right.children[1].children.filter((n) => n.tag === 'g');

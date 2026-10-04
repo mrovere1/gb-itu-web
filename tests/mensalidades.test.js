@@ -19,7 +19,7 @@ const LIST = (itens = [item()], over = {}) => ({
   competencia: '2026-09', competenciaAnterior: '2026-08', itens, total: itens.length, totais: { cobrancas: itens.length, previsto: 550, pago: 200, pendente: 250, vencido: 250 },
   totaisAnterior: { cobrancas: 3, previsto: 500, pago: 400, pendente: 200, vencido: 0 },
   porStatus: { Pendente: 1 }, permissoes: { registrar: true, cancelar: true, gerar: true },
-  opcoes: { formas: ['PIX', 'Débito', 'Crédito', 'Dinheiro', 'Misto'], contas: ['PF', 'PJ'], status: ['Paga', 'Pendente', 'Coberta por pacote', 'Isenta', 'Suspensa', 'Cancelada'] },
+  opcoes: { formas: ['PIX', 'Débito', 'Crédito', 'Dinheiro', 'Misto'], contas: ['PF', 'PJ'], status: ['Paga', 'Pendente', 'Coberta por pacote', 'Isenta', 'Suspensa', 'Cancelada'], competencias: ['2026-07', '2026-08', '2026-09', '2026-10'] },
   hoje: '2026-09-30', ...over,
 });
 
@@ -36,6 +36,16 @@ function setup(respond = () => ok(LIST())) {
 }
 const texts = (node) => [node._t, ...(node.children || []).flatMap(texts)].filter(Boolean);
 const allText = (node) => texts(node).join(' | ');
+/** Escolhe meses no seletor de competência: abre, marca só os pedidos e aplica. */
+function pickMonths(dom, isos) {
+  dom.click('mens-comp-btn');
+  dom.$('mens-comp-list').children.forEach((label) => {
+    const box = label.children[0];
+    box.checked = isos.includes(box.value);
+    box.listeners.change();
+  });
+  dom.click('mens-comp-apply');
+}
 const labels = (nodes) => nodes.map((b) => b.textContent);
 
 test('formatadores: moeda pt-BR e data dd/mm/aaaa', () => {
@@ -53,7 +63,7 @@ test('activate carrega a lista uma única vez, com a competência e os filtros',
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], { acao: 'mensalidades.listar', args: [{ competencia: '', busca: '', status: '' }] });
   assert.deepEqual(dom.visible(PARTS), ['mens-ready']);
-  assert.equal(dom.$('mens-comp').value, '2026-09');
+  assert.equal(dom.$('mens-comp-btn').textContent, 'Setembro/2026');
   assert.equal(dom.$('mens-count').textContent, '1 cobranças');
 });
 
@@ -105,16 +115,16 @@ test('totais da competência e estado vazio', async () => {
 });
 
 test('openWith abre a lista já na competência e com a busca pedida e não recarrega de novo ao ativar', async () => {
-  const { dom, calls, mens } = setup((a, args) => ok(LIST([item()], { competencia: args[0].competencia })));
+  const { dom, calls, mens } = setup((a, args) => ok(LIST([item()], { competencia: args[0].competencias ? args[0].competencias[0] : '2026-09' })));
   mens.openWith({ competencia: '2026-08', busca: 'Ana Ficticia' });
   mens.activate();
   await flush();
   assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0].args[0], { competencia: '2026-08', busca: 'Ana Ficticia', status: '' });
+  assert.deepEqual(calls[0].args[0], { competencias: ['2026-08'], busca: 'Ana Ficticia', status: '' });
   assert.equal(dom.$('mens-q').value, 'Ana Ficticia');
   mens.openWith({ competencia: 'lixo', busca: 'x'.repeat(100) });
   await flush();
-  assert.equal(calls[1].args[0].competencia, '2026-08', 'competência inválida é ignorada');
+  assert.deepEqual(calls[1].args[0].competencias, ['2026-08'], 'competência inválida é ignorada');
   assert.equal(calls[1].args[0].busca.length, 60);
 });
 
@@ -133,27 +143,37 @@ test('totais: mês atual em destaque, mês anterior menor no mesmo cartão e chi
   assert.equal(vencido.cls, 'total-card');
 });
 
-test('filtros: buscar, status e competência recarregam; competência inválida é ignorada', async () => {
-  const { dom, calls, mens } = setup((a, args) => ok(LIST([item()], { competencia: args[0].competencia || '2026-09' })));
+test('filtros: buscar, status e meses recarregam; a seleção de vários meses vai na lista', async () => {
+  const { dom, calls, mens } = setup((a, args) => ok(LIST([item()], { competencia: args[0].competencias ? args[0].competencias.slice(-1)[0] : '2026-09', competencias: args[0].competencias || ['2026-09'] })));
   mens.activate();
   await flush();
   dom.$('mens-q').value = 'ana';
   dom.submit('mens-filter');
   await flush();
-  assert.deepEqual(calls[1].args[0], { competencia: '2026-09', busca: 'ana', status: '' });
+  assert.deepEqual(calls[1].args[0], { competencias: ['2026-09'], busca: 'ana', status: '' });
   dom.$('mens-status').value = 'Paga';
   dom.$('mens-status').listeners.change();
   await flush();
   assert.equal(calls[2].args[0].status, 'Paga');
-  dom.$('mens-comp').value = '2026-08';
-  dom.$('mens-comp').listeners.change();
+  pickMonths(dom, ['2026-07', '2026-08']);
   await flush();
-  assert.equal(calls[3].args[0].competencia, '2026-08');
-  dom.$('mens-comp').value = '2026-13';
-  dom.$('mens-comp').listeners.change();
+  assert.deepEqual(calls[3].args[0].competencias, ['2026-07', '2026-08']);
+  assert.equal(calls[3].args[0].status, 'Paga', 'os outros filtros continuam');
+  assert.equal(dom.$('mens-comp-btn').textContent, 'jul/26–ago/26 (2 meses)');
+});
+
+test('totais com vários meses usam o rótulo do período anterior; seleção salteada não mostra comparação', async () => {
+  const multi = LIST([item()], { competencia: '2026-09', competencias: ['2026-08', '2026-09'], competenciaAnterior: '2026-07', periodoAnteriorRotulo: 'jun/26–jul/26' });
+  const a = setup(() => ok(multi));
+  a.mens.activate();
   await flush();
-  assert.equal(calls.length, 4);
-  assert.equal(dom.$('mens-comp').value, '2026-08');
+  assert.equal(flat(a.dom.$('mens-totals').children[0].children[2].textContent), 'jun/26–jul/26: R$ 500,00');
+  const salteada = LIST([item()], { competencia: '2026-09', competencias: ['2026-07', '2026-09'], competenciaAnterior: null, periodoAnteriorRotulo: null, totaisAnterior: null });
+  const b = setup(() => ok(salteada));
+  b.mens.activate();
+  await flush();
+  const card = b.dom.$('mens-totals').children[0];
+  assert.equal(card.children.length, 2, 'só rótulo e valor: sem linha do período anterior');
 });
 
 test('registrar pagamento: abre a janela com data de hoje, envia versão e campos, fecha, recarrega e avisa', async () => {
@@ -526,12 +546,12 @@ test('aluno com pendência mostra TODOS os meses pendentes (também os anteriore
 });
 
 test('clicar num mês pendente abre aquele mês já filtrado pelo aluno', async () => {
-  const { dom, calls, rows, mens } = setup((a, args) => ok(LIST([withPend()], { competencia: args[0].competencia || '2026-09' })));
+  const { dom, calls, rows, mens } = setup((a, args) => ok(LIST([withPend()], { competencia: args[0].competencias ? args[0].competencias[0] : '2026-09' })));
   mens.activate();
   await flush();
   pendBlock(rows).children[1].listeners.click();
   await flush();
-  assert.deepEqual(calls[1].args[0], { competencia: '2026-07', busca: 'Ana Ficticia', status: '' });
+  assert.deepEqual(calls[1].args[0], { competencias: ['2026-07'], busca: 'Ana Ficticia', status: '' });
   assert.equal(dom.$('mens-q').value, 'Ana Ficticia');
 });
 

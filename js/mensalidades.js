@@ -2,7 +2,8 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=e22b084d2f';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=580d072e4f';
+import { createMonthSelect } from './month-select.js?v=580d072e4f';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -24,7 +25,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
-  let competencia = '';
+  let competencias = []; // meses escolhidos (AAAA-MM); vazio = o servidor usa o mês de hoje
+  const monthSelect = createMonthSelect({ doc, id: 'mens-comp', onChange: (list) => { competencias = list; load(); } });
   let data = null;      // última lista
   let dialog = null;    // { kind, item, opener, comps }
   let submitting = false;
@@ -52,7 +54,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     $('mens-notice').hidden = !text;
   }
 
-  const filters = () => ({ competencia, busca: $('mens-q').value, status: $('mens-status').value });
+  const filters = () => ({ ...(competencias.length ? { competencias } : { competencia: '' }), busca: $('mens-q').value, status: $('mens-status').value });
 
   // ---------- Lista ----------
   function setOptions(select, values, labelFor, keep) {
@@ -70,7 +72,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   // O que é bom: pago e previsto subirem; pendente e vencido caírem.
   const TOTALS = [['Previsto', 'previsto', 'alta-boa'], ['Pago', 'pago', 'alta-boa'], ['Pendente', 'pendente', 'alta-ma'], ['Vencido', 'vencido', 'alta-ma']];
 
-  function renderTotals(t, prev, prevComp) {
+  function renderTotals(t, prev, prevLabel) {
     const box = $('mens-totals');
     box.textContent = '';
     TOTALS.forEach(([label, key, sentido]) => {
@@ -80,10 +82,10 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
       card.appendChild(el('span', 'total-label', label));
       const main = el('div', 'total-main');
       main.appendChild(el('strong', '', money(t[key])));
-      const chip = deltaChip(doc, pct, sentido, prevComp ? monthLabel(prevComp) : '');
+      const chip = deltaChip(doc, pct, sentido, prevLabel || '');
       if (chip) main.appendChild(chip);
       card.appendChild(main);
-      if (prev && prevComp) card.appendChild(el('span', 'total-prev', monthLabel(prevComp) + ': ' + money(prev[key])));
+      if (prev && prevLabel) card.appendChild(el('span', 'total-prev', prevLabel + ': ' + money(prev[key])));
       box.appendChild(card);
     });
   }
@@ -159,11 +161,12 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   function render(d) {
     assertShape(d);
     data = d;
-    competencia = d.competencia;
-    $('mens-comp').value = d.competencia;
+    competencias = Array.isArray(d.competencias) && d.competencias.length ? d.competencias : [d.competencia];
+    monthSelect.setOptions(Array.isArray(d.opcoes.competencias) ? d.opcoes.competencias : competencias);
+    monthSelect.setValue(competencias);
     setOptions($('mens-status'), ['', ...d.opcoes.status], (v) => (v === '' ? 'Todos os status' : v));
     $('mens-generate').hidden = !d.permissoes.gerar;
-    renderTotals(d.totais, d.totaisAnterior, d.competenciaAnterior);
+    renderTotals(d.totais, d.totaisAnterior, d.periodoAnteriorRotulo || (d.competenciaAnterior ? monthLabel(d.competenciaAnterior) : ''));
     $('mens-count').textContent = d.total === d.totais.cobrancas ? d.total + ' cobranças' : d.total + ' de ' + d.totais.cobrancas + ' cobranças';
     $('mens-truncated').hidden = d.total <= d.itens.length;
     const list = $('mens-list');
@@ -355,7 +358,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
           ? resp.data.criadas + (resp.data.criadas === 1 ? ' cobrança criada' : ' cobranças criadas') + ' para ' + compBR(resp.data.competencia) + '.'
           : okMessage;
         closeDialog(false);
-        if (kind === 'gerar') competencia = resp.data.competencia;
+        if (kind === 'gerar') competencias = [resp.data.competencia];
         await load(true);
         setNotice(message);
         return;
@@ -375,7 +378,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   /** Abre a lista já na competência e com a busca pedida (usado pela área de trabalho do painel). */
   function openWith(f) {
     loaded = true;
-    if (f && COMPETENCIA.test(f.competencia || '')) competencia = f.competencia;
+    if (f && COMPETENCIA.test(f.competencia || '')) competencias = [f.competencia];
     $('mens-q').value = f && typeof f.busca === 'string' ? f.busca.slice(0, 60) : '';
     $('mens-status').value = '';
     return load();
@@ -439,7 +442,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     requestId += 1;
     loaded = false;
     data = null;
-    competencia = '';
+    competencias = [];
+    monthSelect.reset();
     dialog = null;
     submitting = false;
     view = 'cards';
@@ -451,7 +455,6 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     $('mens-notice').hidden = true;
     $('mens-dialog-error').hidden = true;
     $('mens-q').value = '';
-    $('mens-comp').value = '';
     $('mens-count').textContent = '';
     $('mens-generate').hidden = true;
     $('mens-truncated').hidden = true;
@@ -461,12 +464,6 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   $('mens-filter').addEventListener('submit', (e) => { e.preventDefault(); load(); });
   $('mens-refresh').addEventListener('click', () => { load(); });
   $('mens-retry').addEventListener('click', () => { load(); });
-  $('mens-comp').addEventListener('change', () => {
-    const v = $('mens-comp').value;
-    if (!COMPETENCIA.test(v) || v === competencia) { $('mens-comp').value = competencia; return; }
-    competencia = v;
-    load();
-  });
   $('mens-status').addEventListener('change', () => { load(); });
   $('mens-generate').addEventListener('click', () => { if (data) openDialog('gerar', null, $('mens-generate')); });
   $('mens-view-cards').addEventListener('click', () => { view = 'cards'; applyView(); });

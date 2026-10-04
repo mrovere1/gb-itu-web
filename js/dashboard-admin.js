@@ -1,8 +1,9 @@
 // Visão completa do painel (somente Administrador): cartões, gráficos, aniversariantes e área de trabalho.
 // Texto do servidor entra sempre por textContent. Recebe doc e callbacks por injeção; não chama a rede.
-import { renderRevenueCard } from './revenue-chart.js?v=e22b084d2f';
-import { createWorkspace } from './workspace.js?v=e22b084d2f';
-import { deltaChip, deltaInfo } from './delta.js?v=e22b084d2f';
+import { renderRevenueCard } from './revenue-chart.js?v=580d072e4f';
+import { fullLabel } from './month-select.js?v=580d072e4f';
+import { createWorkspace } from './workspace.js?v=580d072e4f';
+import { deltaChip, deltaInfo } from './delta.js?v=580d072e4f';
 
 const NUMBER = new Intl.NumberFormat('pt-BR');
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -149,6 +150,7 @@ export function createAdminDashboard({ doc, openStudent, openMensalidade = () =>
     renderRevenueCard({ doc, box: $('chart-revenue'), chart: data.graficos.receitaPrevistaRecebida });
     emptyChart($('chart-occupancy'), (data.graficos.ocupacaoTurmas || {}).mensagem || 'Ainda sem dados.');
     renderAvisos(data.avisos);
+    $('bday-title').textContent = Array.isArray(data.competencias) && data.competencias.length > 1 && data.aniversariantesCompetencia ? 'Aniversariantes de ' + fullLabel(data.aniversariantesCompetencia) : 'Aniversariantes do mês';
     renderBirthdays(data.aniversariantes, data.aniversariantesEstado === 'sem_datas');
     if (workspace.isOpen()) workspace.refresh(data);
     $('dash-admin').hidden = workspace.isOpen(); // com a área de trabalho aberta, o painel fica escondido
