@@ -275,6 +275,41 @@ test('parcela prevista de pacote: mostra a data prevista e cancela com motivo pe
   assert.equal(calls.filter((c) => c.acao === 'mensalidades.listar').length, 2, 'recarrega a lista');
 });
 
+test('"Voltar a pendente" pede o motivo e chama mensalidades.reabrir com a versão da cobrança', async () => {
+  const coberta = item({ status: 'Coberta por pacote', vencida: false, acoes: { registrar: false, editarVencimento: false, cancelar: true, estornar: false, reabrir: true } });
+  const { dom, calls, mens, buttons } = setup((acao) => (acao === 'mensalidades.listar' ? ok(LIST([coberta])) : ok(item())));
+  mens.activate();
+  await flush();
+  const names = labels(buttons(0));
+  assert.ok(names.includes('Voltar a pendente'), names.join(','));
+  buttons(0)[names.indexOf('Voltar a pendente')].listeners.click();
+  assert.equal(dom.$('mens-dialog-title').textContent, 'Voltar a pendente');
+  assert.equal(dom.$('mens-f-motivo-box').hidden, false);
+  assert.match(dom.$('mens-dialog-info').textContent, /Nada é apagado/);
+  dom.$('mens-f-motivo').value = 'pagamento do teste apagado';
+  dom.submit('mens-form');
+  await flush();
+  assert.deepEqual(calls.find((c) => c.acao === 'mensalidades.reabrir').args, ['COB-1', { versao: 'v1', motivo: 'pagamento do teste apagado' }]);
+  assert.equal(dom.$('mens-dialog').hidden, true);
+});
+
+test('"Desfazer pacote" avisa que vale para o pacote inteiro e chama pacotes.desfazer com o pagamento', async () => {
+  const comPacote = item({ status: 'Coberta por pacote', vencida: false, pagamento: { payment_id: 'PAG-9', data: '2026-09-28', forma: 'Crédito', valor: 600, status: 'Confirmado', pacote: true }, acoes: { registrar: false, editarVencimento: false, cancelar: true, estornar: true, desfazerPacote: true } });
+  const { dom, calls, mens, buttons } = setup((acao) => (acao === 'mensalidades.listar' ? ok(LIST([comPacote])) : ok({ resumo: { pagamentos: 1, cobrancas: 3 } })));
+  mens.activate();
+  await flush();
+  const names = labels(buttons(0));
+  assert.ok(names.includes('Desfazer pacote'), names.join(','));
+  buttons(0)[names.indexOf('Desfazer pacote')].listeners.click();
+  assert.equal(dom.$('mens-dialog-title').textContent, 'Desfazer pacote');
+  assert.match(dom.$('mens-dialog-info').textContent, /pacote inteiro/);
+  dom.$('mens-f-motivo').value = 'lançado por engano';
+  dom.submit('mens-form');
+  await flush();
+  assert.deepEqual(calls.find((c) => c.acao === 'pacotes.desfazer').args, ['PAG-9', { motivo: 'lançado por engano' }]);
+  assert.equal(calls.filter((c) => c.acao === 'mensalidades.listar').length, 2, 'recarrega a lista');
+});
+
 test('sem a ação cancelarPrevisto o botão não aparece', async () => {
   const { mens, buttons } = setup();
   mens.activate();

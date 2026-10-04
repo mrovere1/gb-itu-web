@@ -1,16 +1,16 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=5e7914f00d';
-import { loadFirebase } from './firebase.js?v=5e7914f00d';
-import { createApi } from './api.js?v=5e7914f00d';
-import { createAuth } from './auth.js?v=5e7914f00d';
-import { createDashboard } from './dashboard.js?v=5e7914f00d';
-import { createStudentForm } from './student-form.js?v=5e7914f00d';
-import { createStudents } from './students.js?v=5e7914f00d';
-import { createMensalidades } from './mensalidades.js?v=5e7914f00d';
-import { createAlunoFull } from './alunofull.js?v=5e7914f00d';
-import { createPacote } from './pacote.js?v=5e7914f00d';
-import { createDataTable } from './data-table.js?v=5e7914f00d';
-import { createApp } from './app.js?v=5e7914f00d';
+import { CONFIG } from './config.js?v=e22b084d2f';
+import { loadFirebase } from './firebase.js?v=e22b084d2f';
+import { createApi } from './api.js?v=e22b084d2f';
+import { createAuth } from './auth.js?v=e22b084d2f';
+import { createDashboard } from './dashboard.js?v=e22b084d2f';
+import { createStudentForm } from './student-form.js?v=e22b084d2f';
+import { createStudents } from './students.js?v=e22b084d2f';
+import { createMensalidades } from './mensalidades.js?v=e22b084d2f';
+import { createAlunoFull } from './alunofull.js?v=e22b084d2f';
+import { createPacote } from './pacote.js?v=e22b084d2f';
+import { createDataTable } from './data-table.js?v=e22b084d2f';
+import { createApp } from './app.js?v=e22b084d2f';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;

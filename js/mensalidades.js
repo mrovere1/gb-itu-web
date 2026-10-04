@@ -2,7 +2,7 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=5e7914f00d';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=e22b084d2f';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -143,6 +143,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (item.acoes.estornar) actions.appendChild(actionButton('Estornar', 'estornar', item));
     if (item.acoes.cancelar) actions.appendChild(actionButton('Cancelar', 'cancelar', item));
     if (item.acoes.cancelarPrevisto) actions.appendChild(actionButton('Cancelar parcela', 'cancelarPrevisto', item));
+    if (item.acoes.reabrir) actions.appendChild(actionButton('Voltar a pendente', 'reabrir', item));
+    if (item.acoes.desfazerPacote) actions.appendChild(actionButton('Desfazer pacote', 'desfazerPacote', item));
     row.appendChild(actions);
     li.appendChild(row);
     return li;
@@ -201,10 +203,12 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     cancelar: ['mens-f-motivo-box'],
     estornar: ['mens-f-motivo-box'],
     cancelarPrevisto: ['mens-f-motivo-box'],
+    reabrir: ['mens-f-motivo-box'],
+    desfazerPacote: ['mens-f-motivo-box'],
     gerar: ['mens-f-gcomp-box'],
   };
-  const TITLES = { pagar: 'Registrar pagamento', vencimento: 'Editar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela prevista', gerar: 'Gerar cobranças do mês' };
-  const SUBMIT = { pagar: 'Registrar pagamento', vencimento: 'Salvar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela', gerar: 'Gerar cobranças' };
+  const TITLES = { pagar: 'Registrar pagamento', vencimento: 'Editar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela prevista', reabrir: 'Voltar a pendente', desfazerPacote: 'Desfazer pacote', gerar: 'Gerar cobranças do mês' };
+  const SUBMIT = { pagar: 'Registrar pagamento', vencimento: 'Salvar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela', reabrir: 'Voltar a pendente', desfazerPacote: 'Desfazer pacote', gerar: 'Gerar cobranças' };
 
   function showDialogError(messages) {
     const box = $('mens-dialog-error');
@@ -220,6 +224,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (kind === 'cancelar') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') será marcada como cancelada. Nada é apagado.';
     if (kind === 'estornar') return 'O pagamento de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ') será marcado como estornado e a cobrança volta a pendente. Nada é apagado.';
     if (kind === 'cancelarPrevisto') return 'A parcela prevista de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ', ' + compBR(item.competencia) + ') será cancelada e a cobrança volta a pendente. Nada é apagado.';
+    if (kind === 'reabrir') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') deixa de estar coberta por pacote e volta a pendente. Nada é apagado.';
+    if (kind === 'desfazerPacote') return 'Isto desfaz o pacote inteiro de ' + item.nome + ': o pagamento (' + money(item.pagamento && item.pagamento.valor) + ') é estornado ou cancelado e as cobranças dos meses cobertos voltam a pendente. Nada é apagado.';
     return '';
   }
 
@@ -245,7 +251,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   }
 
   function focusFirst(kind) {
-    const first = { pagar: 'mens-f-data', vencimento: 'mens-f-venc', cancelar: 'mens-f-motivo', estornar: 'mens-f-motivo', cancelarPrevisto: 'mens-f-motivo' }[kind];
+    const first = { pagar: 'mens-f-data', vencimento: 'mens-f-venc', cancelar: 'mens-f-motivo', estornar: 'mens-f-motivo', cancelarPrevisto: 'mens-f-motivo', reabrir: 'mens-f-motivo', desfazerPacote: 'mens-f-motivo' }[kind];
     $(first).focus();
   }
 
@@ -318,6 +324,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (kind === 'vencimento') return ['mensalidades.editarVencimento', [item.charge_id, { versao: item.versao, vencimento: $('mens-f-venc').value }], 'Vencimento atualizado.'];
     if (kind === 'cancelar') return ['mensalidades.cancelar', [item.charge_id, { versao: item.versao, motivo: $('mens-f-motivo').value }], 'Cobrança cancelada.'];
     if (kind === 'estornar') return ['mensalidades.estornar', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Pagamento estornado.'];
+    if (kind === 'reabrir') return ['mensalidades.reabrir', [item.charge_id, { versao: item.versao, motivo: $('mens-f-motivo').value }], 'Cobrança voltou a pendente.'];
+    if (kind === 'desfazerPacote') return ['pacotes.desfazer', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Pacote desfeito.'];
     if (kind === 'cancelarPrevisto') return ['pacotes.cancelarPrevisto', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Parcela prevista cancelada.'];
     return ['mensalidades.gerar', [{ competencia: $('mens-f-gcomp').value }], null];
   }
