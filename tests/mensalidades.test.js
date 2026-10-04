@@ -330,6 +330,88 @@ test('"Desfazer pacote" avisa que vale para o pacote inteiro e chama pacotes.des
   assert.equal(calls.filter((c) => c.acao === 'mensalidades.listar').length, 2, 'recarrega a lista');
 });
 
+// ---------- ações abertas de fora (quadro mensal do Aluno Full) ----------
+const EXT_OPTS = { formas: ['PIX', 'Crédito'], contas: ['PF', 'PJ'] };
+function external(respond = () => ok(item({ status: 'Paga' }))) {
+  const s = setup(respond);
+  const done = [];
+  const opener = { focused: 0, focus() { this.focused += 1; } };
+  const ext = { inertId: 'af-inner', hoje: '2026-09-30', opcoes: EXT_OPTS, onDone: (m) => done.push(m) };
+  const open = (kind, it) => s.mens.openAction(kind, it, opener, ext);
+  return { ...s, done, opener, ext, open };
+}
+
+test('openAction: abre a janela sem a lista carregada, usa as opções do chamador e isola a tela de quem chamou', () => {
+  const { dom, calls, open } = external();
+  open('pagar', item());
+  assert.equal(dom.$('mens-dialog').hidden, false);
+  assert.equal(dom.$('mens-dialog-title').textContent, 'Registrar pagamento');
+  assert.equal(dom.$('af-inner').inert, true);
+  assert.notEqual(dom.$('view-mensalidades-inner').inert, true, 'a aba de Mensalidades não é a isolada');
+  assert.equal(dom.$('mens-f-data').value, '2026-09-30');
+  assert.deepEqual(dom.$('mens-f-forma').options.map((o) => o.value), ['', 'PIX', 'Crédito']);
+  assert.equal(calls.length, 0, 'não carrega a lista de Mensalidades');
+});
+
+test('openAction: registrar pagamento envia a versão e avisa quem chamou, sem recarregar Mensalidades', async () => {
+  const { dom, calls, done, opener, open } = external();
+  open('pagar', item());
+  dom.$('mens-f-data').value = '2026-09-28';
+  dom.$('mens-f-forma').value = 'PIX';
+  dom.submit('mens-form');
+  await flush();
+  assert.deepEqual(calls.map((c) => c.acao), ['mensalidades.registrarPagamento']);
+  assert.deepEqual(calls[0].args, ['COB-1', { versao: 'v1', data: '2026-09-28', forma: 'PIX', conta: '', observacao: '' }]);
+  assert.equal(dom.$('mens-dialog').hidden, true);
+  assert.equal(dom.$('af-inner').inert, false);
+  assert.deepEqual(done, ['Pagamento registrado.']);
+  assert.ok(opener.focused >= 0);
+});
+
+test('openAction: versão desatualizada mostra o erro e pede ao chamador para recarregar', async () => {
+  const { dom, done, open } = external(() => fail('VERSAO_DESATUALIZADA', 'x'));
+  open('cancelar', item());
+  dom.$('mens-f-motivo').value = 'motivo teste';
+  dom.submit('mens-form');
+  await flush();
+  assert.equal(dom.$('mens-dialog').hidden, true);
+  assert.equal(done.length, 1);
+  assert.match(done[0], /atualizad|alterad/i);
+});
+
+test('lançar cobrança: pede valor e vencimento, envia número e data e avisa o chamador', async () => {
+  const { dom, calls, done, open } = external(() => ok(item()));
+  open('lancar', { student_id: 'ALU-1', nome: 'Ana Ficticia', competencia: '2026-10', valor: 150, vencimento: '2026-10-10' });
+  assert.equal(dom.$('mens-dialog-title').textContent, 'Lançar cobrança do mês');
+  assert.equal(dom.$('mens-f-valor-box').hidden, false);
+  assert.equal(dom.$('mens-f-venc-box').hidden, false);
+  assert.equal(dom.$('mens-f-data-box').hidden, true);
+  assert.match(dom.$('mens-dialog-info').textContent, /10\/2026/);
+  assert.equal(dom.$('mens-f-valor').value, '150');
+  assert.equal(dom.$('mens-f-venc').value, '2026-10-10');
+  dom.$('mens-f-valor').value = '172,50';
+  dom.submit('mens-form');
+  await flush();
+  assert.deepEqual(calls[0], { acao: 'mensalidades.lancar', args: ['ALU-1', { competencia: '2026-10', valor: 172.5, vencimento: '2026-10-10' }] });
+  assert.deepEqual(done, ['Cobrança lançada.']);
+});
+
+test('lançar cobrança: valor inválido não chama o servidor; erro do servidor aparece na janela', async () => {
+  const a = external(() => ok(item()));
+  a.open('lancar', { student_id: 'ALU-1', nome: 'Ana', competencia: '2026-10', valor: 150, vencimento: '2026-10-10' });
+  a.dom.$('mens-f-valor').value = 'abc';
+  a.dom.submit('mens-form');
+  await flush();
+  assert.equal(a.calls.length, 0);
+  assert.match(a.dom.$('mens-dialog-error').children.map((c) => c.textContent).join(' '), /valor/i);
+  const b = external(() => fail('CONFLITO', 'x', [{ campo: 'competencia', mensagem: 'Este mês já tem cobrança. Use a que existe.' }]));
+  b.open('lancar', { student_id: 'ALU-1', nome: 'Ana', competencia: '2026-10', valor: 150, vencimento: '2026-10-10' });
+  b.dom.submit('mens-form');
+  await flush();
+  assert.match(b.dom.$('mens-dialog-error').children.map((c) => c.textContent).join(' '), /já tem cobrança/);
+  assert.equal(b.dom.$('mens-dialog').hidden, false);
+});
+
 test('sem a ação cancelarPrevisto o botão não aparece', async () => {
   const { mens, buttons } = setup();
   mens.activate();

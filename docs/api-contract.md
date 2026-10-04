@@ -114,5 +114,6 @@ Cada cartão com lista (`detalhes`) abre a sua área de trabalho em tela larga: 
 
 - `pacotes.registrar` `[studentId, { versao, modo, data, mes_inicial, meses, valor_total, forma, observacao? }]`: `modo` = `unico` ou `recorrente`; `versao` = `matricula.versao`. Resposta `{ resumo }`. Contrato completo no repositório `gb-itu` (`docs/api-contract.md`).
 - `pacotes.registrarFamilia` `[familiaId, { modo, data, mes_inicial, meses, forma, observacao?, membros: [{ student_id, versao, valor_total }] }]`: um pacote para a família (cada aluno com o seu valor, mesmo código `PCT-…`; tudo ou nada). Contrato completo no repositório `gb-itu`.
+- `alunofull.quadro` `[{ competencias? }]` (só leitura): quadro aluno × mês do Aluno Full; cada célula traz as ações permitidas. `mensalidades.lancar` `[studentId, { competencia, valor, vencimento }]`: cria a cobrança Pendente de um mês sem registro. Contrato completo no repositório `gb-itu`.
 - `pacotes.cancelarPrevisto` `[paymentId, { motivo }]`: cancela parcela `Previsto`. O item de `mensalidades.listar` traz `acoes.cancelarPrevisto`.
 - `alunofull.listar` traz `opcoes.formas` (formas de pagamento aceitas).

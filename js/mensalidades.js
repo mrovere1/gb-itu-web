@@ -2,8 +2,8 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=97019658dd';
-import { createMonthSelect } from './month-select.js?v=97019658dd';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=3479483569';
+import { createMonthSelect } from './month-select.js?v=3479483569';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -199,7 +199,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   }
 
   // ---------- Janela de operação ----------
-  const BOXES = ['mens-f-data-box', 'mens-f-forma-box', 'mens-f-conta-box', 'mens-f-obs-box', 'mens-f-motivo-box', 'mens-f-venc-box', 'mens-f-gcomp-box'];
+  const BOXES = ['mens-f-valor-box', 'mens-f-data-box', 'mens-f-forma-box', 'mens-f-conta-box', 'mens-f-obs-box', 'mens-f-motivo-box', 'mens-f-venc-box', 'mens-f-gcomp-box'];
   const FIELDS = {
     pagar: ['mens-f-data-box', 'mens-f-forma-box', 'mens-f-conta-box', 'mens-f-obs-box'],
     vencimento: ['mens-f-venc-box'],
@@ -209,9 +209,10 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     reabrir: ['mens-f-motivo-box'],
     desfazerPacote: ['mens-f-motivo-box'],
     gerar: ['mens-f-gcomp-box'],
+    lancar: ['mens-f-valor-box', 'mens-f-venc-box'],
   };
-  const TITLES = { pagar: 'Registrar pagamento', vencimento: 'Editar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela prevista', reabrir: 'Voltar a pendente', desfazerPacote: 'Desfazer pacote', gerar: 'Gerar cobranças do mês' };
-  const SUBMIT = { pagar: 'Registrar pagamento', vencimento: 'Salvar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela', reabrir: 'Voltar a pendente', desfazerPacote: 'Desfazer pacote', gerar: 'Gerar cobranças' };
+  const TITLES = { pagar: 'Registrar pagamento', vencimento: 'Editar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela prevista', reabrir: 'Voltar a pendente', desfazerPacote: 'Desfazer pacote', lancar: 'Lançar cobrança do mês', gerar: 'Gerar cobranças do mês' };
+  const SUBMIT = { pagar: 'Registrar pagamento', vencimento: 'Salvar vencimento', cancelar: 'Cancelar cobrança', estornar: 'Estornar pagamento', cancelarPrevisto: 'Cancelar parcela', reabrir: 'Voltar a pendente', desfazerPacote: 'Desfazer pacote', lancar: 'Lançar cobrança', gerar: 'Gerar cobranças' };
 
   function showDialogError(messages) {
     const box = $('mens-dialog-error');
@@ -227,43 +228,48 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (kind === 'cancelar') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') será marcada como cancelada. Nada é apagado.';
     if (kind === 'estornar') return 'O pagamento de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ') será marcado como estornado e a cobrança volta a pendente. Nada é apagado.';
     if (kind === 'cancelarPrevisto') return 'A parcela prevista de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ', ' + compBR(item.competencia) + ') será cancelada e a cobrança volta a pendente. Nada é apagado.';
+    if (kind === 'lancar') return item.nome + ' · competência ' + compBR(item.competencia) + '. Cria a cobrança pendente deste mês; depois você registra o pagamento.';
     if (kind === 'reabrir') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') deixa de estar coberta por pacote e volta a pendente. Nada é apagado.';
     if (kind === 'desfazerPacote') return 'Isto desfaz o pacote inteiro de ' + item.nome + ': o pagamento (' + money(item.pagamento && item.pagamento.valor) + ') é estornado ou cancelado e as cobranças dos meses cobertos voltam a pendente. Nada é apagado.';
     return '';
   }
 
-  function openDialog(kind, item, opener) {
-    dialog = { kind, item, opener };
+  function openDialog(kind, item, opener, ext = null) {
+    dialog = { kind, item, opener, ext };
+    const hoje = ext ? ext.hoje : data.hoje;
+    const opcoes = ext ? ext.opcoes : data.opcoes;
     BOXES.forEach((id) => { $(id).hidden = !FIELDS[kind].includes(id); });
     $('mens-dialog-title').textContent = TITLES[kind];
     $('mens-dialog-info').textContent = dialogInfo(kind, item);
     $('mens-submit').textContent = SUBMIT[kind];
     $('mens-submit').disabled = false;
     showDialogError([]);
-    $('mens-f-data').value = data.hoje;
-    $('mens-f-data').max = data.hoje;
-    setOptions($('mens-f-forma'), ['', ...data.opcoes.formas], (v) => (v === '' ? 'Escolha…' : v), '');
-    setOptions($('mens-f-conta'), ['', ...data.opcoes.contas], (v) => (v === '' ? 'Não informar' : 'Conta ' + v), '');
+    $('mens-f-data').value = hoje;
+    $('mens-f-data').max = hoje;
+    setOptions($('mens-f-forma'), ['', ...opcoes.formas], (v) => (v === '' ? 'Escolha…' : v), '');
+    setOptions($('mens-f-conta'), ['', ...opcoes.contas], (v) => (v === '' ? 'Não informar' : 'Conta ' + v), '');
     $('mens-f-obs').value = '';
     $('mens-f-motivo').value = '';
     $('mens-f-venc').value = item && item.vencimento ? item.vencimento : '';
+    $('mens-f-valor').value = kind === 'lancar' && item && typeof item.valor === 'number' ? String(item.valor).replace('.', ',') : '';
     $('mens-dialog').hidden = false;
-    $('view-mensalidades-inner').inert = true;
+    $(ext ? ext.inertId : 'view-mensalidades-inner').inert = true;
     if (kind === 'gerar') openGenerate();
     else focusFirst(kind);
   }
 
   function focusFirst(kind) {
-    const first = { pagar: 'mens-f-data', vencimento: 'mens-f-venc', cancelar: 'mens-f-motivo', estornar: 'mens-f-motivo', cancelarPrevisto: 'mens-f-motivo', reabrir: 'mens-f-motivo', desfazerPacote: 'mens-f-motivo' }[kind];
+    const first = { pagar: 'mens-f-data', vencimento: 'mens-f-venc', cancelar: 'mens-f-motivo', estornar: 'mens-f-motivo', cancelarPrevisto: 'mens-f-motivo', reabrir: 'mens-f-motivo', desfazerPacote: 'mens-f-motivo', lancar: 'mens-f-valor' }[kind];
     $(first).focus();
   }
 
   function closeDialog(restoreFocus = true) {
     if (!dialog) return;
     const opener = dialog.opener;
+    const inertId = dialog.ext ? dialog.ext.inertId : 'view-mensalidades-inner';
     dialog = null;
     $('mens-dialog').hidden = true;
-    $('view-mensalidades-inner').inert = false;
+    $(inertId).inert = false;
     if (restoreFocus && opener && opener.focus) opener.focus();
   }
 
@@ -327,15 +333,19 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (kind === 'vencimento') return ['mensalidades.editarVencimento', [item.charge_id, { versao: item.versao, vencimento: $('mens-f-venc').value }], 'Vencimento atualizado.'];
     if (kind === 'cancelar') return ['mensalidades.cancelar', [item.charge_id, { versao: item.versao, motivo: $('mens-f-motivo').value }], 'Cobrança cancelada.'];
     if (kind === 'estornar') return ['mensalidades.estornar', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Pagamento estornado.'];
+    if (kind === 'lancar') return ['mensalidades.lancar', [item.student_id, { competencia: item.competencia, valor: parseMoney($('mens-f-valor').value), vencimento: $('mens-f-venc').value }], 'Cobrança lançada.'];
     if (kind === 'reabrir') return ['mensalidades.reabrir', [item.charge_id, { versao: item.versao, motivo: $('mens-f-motivo').value }], 'Cobrança voltou a pendente.'];
     if (kind === 'desfazerPacote') return ['pacotes.desfazer', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Pacote desfeito.'];
     if (kind === 'cancelarPrevisto') return ['pacotes.cancelarPrevisto', [item.pagamento.payment_id, { motivo: $('mens-f-motivo').value }], 'Parcela prevista cancelada.'];
     return ['mensalidades.gerar', [{ competencia: $('mens-f-gcomp').value }], null];
   }
 
+  const parseMoney = (text) => (String(text).trim() === '' ? NaN : Number(String(text).trim().replace(',', '.')));
+
   async function submit(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!dialog || submitting) return;
+    if (dialog.kind === 'lancar' && !(parseMoney($('mens-f-valor').value) > 0)) { showDialogError('Informe o valor da cobrança em reais (ex.: 150 ou 150,50).'); return; }
     submitting = true;
     $('mens-submit').disabled = true;
     showDialogError([]);
@@ -358,6 +368,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
           ? resp.data.criadas + (resp.data.criadas === 1 ? ' cobrança criada' : ' cobranças criadas') + ' para ' + compBR(resp.data.competencia) + '.'
           : okMessage;
         closeDialog(false);
+        if (mine.ext) { mine.ext.onDone(message); return; } // aberta de fora (quadro): quem chamou recarrega a sua tela
         if (kind === 'gerar') competencias = [resp.data.competencia];
         await load(true);
         setNotice(message);
@@ -368,7 +379,11 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
       $('mens-submit').disabled = false;
       const fields = Array.isArray(resp.error.fields) ? resp.error.fields.map((f) => f.mensagem) : [];
       showDialogError(fields.length ? fields : resp.error.message);
-      if (STALE.has(code)) { setNotice(''); load(true); }
+      if (STALE.has(code)) {
+        if (mine.ext) { closeDialog(false); mine.ext.onDone('Os dados mudaram: a tela foi atualizada. Confira e repita a ação, se ainda for preciso.'); return; }
+        setNotice('');
+        load(true);
+      }
     } catch (err) {
       $('mens-submit').disabled = false;
       showDialogError(GENERIC_ERROR);
@@ -477,5 +492,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   table = buildTable();
   applyView();
 
-  return { activate, reset, load, openWith };
+  /** Abre uma das janelas de operação a partir de outra tela (ext: inertId, hoje, opcoes, onDone). */
+  function openAction(kind, item, opener, ext) { openDialog(kind, item, opener, ext); }
+
+  return { activate, reset, load, openWith, openAction };
 }

@@ -443,3 +443,41 @@ button.kpi:hover .kpi-open, button.kpi:focus-visible .kpi-open { text-decoration
 .pk-member .muted { grid-column: 1 / -1; font-size: .8rem; }
 .pk-member-off { opacity: .65; }
 .pk-total { font-weight: 700; margin: 8px 0 0; }
+
+/* ---------- Quadro mensal (Aluno Full): aluno × mês ---------- */
+.qd-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin-bottom: 10px; }
+.qd-tools .field { margin: 0; }
+.qd-check { min-height: 44px; }
+.qd-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0; margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
+.qd-legend li { display: flex; align-items: center; gap: 6px; }
+.qd-chip { width: 14px; height: 14px; border-radius: 4px; border: 1px solid transparent; display: inline-block; }
+.qd-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.qd-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .85rem; }
+.qd-table th, .qd-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: center; }
+.qd-table thead th { position: sticky; top: 0; z-index: 3; background: #f0f0f1; font-weight: 600; }
+.qd-table .qd-name { position: sticky; left: 0; z-index: 2; background: var(--bg); text-align: left; min-width: 190px; max-width: 260px; border-right: 1px solid var(--line); white-space: normal; }
+.qd-table thead .qd-name { z-index: 4; background: #f0f0f1; }
+.qd-student { display: block; font-weight: 600; }
+.qd-sub { display: block; font-size: .72rem; }
+.qd-table .dt-num { font-variant-numeric: tabular-nums; }
+.qd-cell { display: block; width: 100%; min-width: 78px; min-height: 30px; padding: 3px 8px; border-radius: 6px; border: 1px solid transparent; font-size: .8rem; font-weight: 600; line-height: 1.2; text-align: center; cursor: pointer; }
+span.qd-cell { cursor: default; }
+button.qd-cell:hover { filter: brightness(.96); }
+.qd-pago { background: #e6f4ea; color: #0b4d36; border-color: #c9e6d3; }
+.qd-pacote { background: #ddebf7; color: #1b3f6b; border-color: #bfd6ec; }
+.qd-pend { background: #fce8e6; color: #8a1c14; border-color: #f4c9c4; }
+.qd-venc { background: #f9c9c4; border-color: #c8281c; }
+.qd-isento { background: #eceff1; color: #4a4f52; border-color: #d9dee1; }
+.qd-susp { background: #fff2cc; color: #6b5200; border-color: #f0dc9a; }
+.qd-canc { background: #eceff1; color: #6c7275; text-decoration: line-through; border-color: #d9dee1; }
+.qd-vazio { background: transparent; color: #8a8a8a; font-weight: 500; border: 1px dashed #d0d0d0; }
+button.qd-vazio:hover { background: var(--tint); }
+.qd-off { border-style: dotted; opacity: .75; }
+.qd-chip.qd-vazio { border: 1px dashed #b0b0b0; }
+.qd-actions { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.qd-actions button { width: 100%; text-align: left; }
+.qd-primary { background: var(--red); color: #fff; border-color: var(--red); }
+@media (max-width: 860px) {
+  .qd-table .qd-name { min-width: 130px; }
+  .qd-cell { min-width: 64px; font-size: .75rem; }
+}

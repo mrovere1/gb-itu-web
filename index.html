@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=97019658dd" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=97019658dd">
-    <script src="js/framebust.js?v=97019658dd"></script>
+    <link rel="icon" href="img/icone.png?v=3479483569" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=3479483569">
+    <script src="js/framebust.js?v=3479483569"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=97019658dd" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=3479483569" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -53,7 +53,7 @@
       <div class="shell">
         <aside id="sidebar" class="sidebar" data-open="false">
           <div class="side-brand">
-            <img class="brand" src="img/icone.png?v=97019658dd" alt="" width="256" height="191">
+            <img class="brand" src="img/icone.png?v=3479483569" alt="" width="256" height="191">
             <div class="side-title">
               <h1 id="school">Sistema Interno</h1>
               <span id="env" class="badge" hidden></span>
@@ -75,7 +75,7 @@
         <div class="content">
           <header class="topbar">
             <button id="nav-toggle" type="button" class="nav-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Menu"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-            <img class="brand" src="img/icone.png?v=97019658dd" alt="" width="256" height="191">
+            <img class="brand" src="img/icone.png?v=3479483569" alt="" width="256" height="191">
             <span class="topbar-name">GB Itu</span>
           </header>
 
@@ -271,48 +271,6 @@
           </div>
         </div>
 
-        <div id="mens-dialog" class="drawer" hidden>
-          <div id="mens-dialog-backdrop" class="drawer-backdrop"></div>
-          <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="mens-dialog-title">
-            <h3 id="mens-dialog-title"></h3>
-            <p id="mens-dialog-info" class="muted"></p>
-            <div id="mens-dialog-error" class="form-error" role="alert" tabindex="-1" hidden></div>
-            <form id="mens-form" novalidate>
-              <div class="field" id="mens-f-data-box">
-                <label for="mens-f-data">Data do pagamento</label>
-                <input id="mens-f-data" type="date" min="2020-01-01">
-              </div>
-              <div class="field" id="mens-f-forma-box">
-                <label for="mens-f-forma">Forma de pagamento</label>
-                <select id="mens-f-forma"><option value="">Escolha…</option></select>
-              </div>
-              <div class="field" id="mens-f-conta-box">
-                <label for="mens-f-conta">Conta</label>
-                <select id="mens-f-conta"><option value="">Não informar</option></select>
-              </div>
-              <div class="field" id="mens-f-obs-box">
-                <label for="mens-f-obs">Observação (opcional)</label>
-                <input id="mens-f-obs" maxlength="200" autocomplete="off">
-              </div>
-              <div class="field" id="mens-f-venc-box">
-                <label for="mens-f-venc">Novo vencimento</label>
-                <input id="mens-f-venc" type="date" min="2020-01-01">
-              </div>
-              <div class="field" id="mens-f-motivo-box">
-                <label for="mens-f-motivo">Motivo (obrigatório)</label>
-                <input id="mens-f-motivo" maxlength="200" autocomplete="off">
-              </div>
-              <div class="field" id="mens-f-gcomp-box">
-                <label for="mens-f-gcomp">Competência</label>
-                <select id="mens-f-gcomp"><option value=""></option></select>
-              </div>
-              <div class="actions">
-                <button id="mens-submit" type="submit">Confirmar</button>
-                <button id="mens-cancel" type="button" class="secondary">Fechar</button>
-              </div>
-            </form>
-          </section>
-        </div>
       </div>
 
       <div id="view-alunofull" hidden>
@@ -325,6 +283,7 @@
           <div id="af-views" class="ws-views" role="group" aria-label="Visualização" hidden>
             <button id="af-view-families" type="button" class="secondary" aria-pressed="true">Famílias</button>
             <button id="af-view-list" type="button" class="secondary" aria-pressed="false">Lista</button>
+            <button id="af-view-grid" type="button" class="secondary" aria-pressed="false">Quadro mensal</button>
           </div>
           <button id="af-refresh" type="button" class="btn-soft">Atualizar</button>
         </div>
@@ -347,6 +306,50 @@
           <p id="af-nomatch" class="card muted" hidden>Nenhum aluno ou família encontrado para esta busca.</p>
           <div id="af-groups"></div>
           <div id="af-table-root" class="dt-root" hidden></div>
+          <div id="af-grid-root" class="qd" hidden>
+            <div class="qd-tools">
+              <div class="field">
+                <label for="qd-comp-btn">Meses</label>
+                <div id="qd-comp" class="ms">
+                <button id="qd-comp-btn" type="button" class="ms-btn secondary" aria-haspopup="true" aria-expanded="false"></button>
+                <div id="qd-comp-backdrop" class="ms-backdrop" hidden></div>
+                <div id="qd-comp-panel" class="ms-panel" role="group" aria-label="Meses" hidden>
+                  <label class="ms-all"><input id="qd-comp-all" type="checkbox"><span>Todos os meses</span></label>
+                  <div id="qd-comp-list" class="ms-list"></div>
+                  <p id="qd-comp-msg" class="ms-msg" role="alert" hidden></p>
+                  <div class="ms-actions">
+                    <button id="qd-comp-apply" type="button">Aplicar</button>
+                    <button id="qd-comp-cancel" type="button" class="secondary">Cancelar</button>
+                  </div>
+                </div>
+              </div>
+              </div>
+              <div class="field">
+                <label for="qd-q">Buscar aluno</label>
+                <input id="qd-q" type="search" maxlength="60" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="qd-status">Status do aluno</label>
+                <select id="qd-status"></select>
+              </div>
+              <label class="ms-item qd-check"><input id="qd-pend" type="checkbox"><span>Só com pendência</span></label>
+              <button id="qd-refresh" type="button" class="btn-soft">Atualizar</button>
+              <button id="qd-csv" type="button" class="btn-soft">Exportar CSV</button>
+            </div>
+            <p id="qd-notice" class="success" role="status" hidden></p>
+            <section id="qd-loading" class="card" role="status" aria-live="polite" hidden><p>Carregando o quadro…</p></section>
+            <section id="qd-error" class="card card-error" role="alert" hidden>
+              <p id="qd-error-msg"></p>
+              <p id="qd-error-ref" class="muted"></p>
+              <button id="qd-retry" type="button">Tentar novamente</button>
+            </section>
+            <section id="qd-empty" class="card" hidden><p class="muted">Nenhum aluno encontrado com estes filtros.</p></section>
+            <div id="qd-ready" hidden>
+              <p id="qd-count" class="muted" role="status" aria-live="polite"></p>
+              <ul id="qd-legend" class="qd-legend" aria-label="Legenda"></ul>
+              <div id="qd-wrap" class="qd-wrap"><table id="qd-table" class="qd-table"></table></div>
+            </div>
+          </div>
         </div>
         </div>
 
@@ -426,6 +429,19 @@
                 <button id="af-open-student" type="button" class="link">Abrir cadastro completo</button>
               </div>
             </form>
+          </section>
+        </div>
+
+        <div id="qd-cell" class="drawer" hidden>
+          <div id="qd-cell-backdrop" class="drawer-backdrop"></div>
+          <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="qd-cell-title">
+            <h3 id="qd-cell-title"></h3>
+            <p id="qd-cell-info" class="muted"></p>
+            <dl id="qd-cell-details" class="fields"></dl>
+            <div id="qd-cell-actions" class="qd-actions"></div>
+            <div class="actions">
+              <button id="qd-cell-close" type="button" class="secondary">Fechar</button>
+            </div>
           </section>
         </div>
 
@@ -627,10 +643,58 @@
           <ul id="detail-warnings" class="warnings"></ul>
           <dl id="detail-fields" class="fields"></dl>
           </main>
+
+        <div id="mens-dialog" class="drawer" hidden>
+          <div id="mens-dialog-backdrop" class="drawer-backdrop"></div>
+          <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="mens-dialog-title">
+            <h3 id="mens-dialog-title"></h3>
+            <p id="mens-dialog-info" class="muted"></p>
+            <div id="mens-dialog-error" class="form-error" role="alert" tabindex="-1" hidden></div>
+            <form id="mens-form" novalidate>
+              <div class="field" id="mens-f-data-box">
+                <label for="mens-f-data">Data do pagamento</label>
+                <input id="mens-f-data" type="date" min="2020-01-01">
+              </div>
+              <div class="field" id="mens-f-forma-box">
+                <label for="mens-f-forma">Forma de pagamento</label>
+                <select id="mens-f-forma"><option value="">Escolha…</option></select>
+              </div>
+              <div class="field" id="mens-f-conta-box">
+                <label for="mens-f-conta">Conta</label>
+                <select id="mens-f-conta"><option value="">Não informar</option></select>
+              </div>
+              <div class="field" id="mens-f-obs-box">
+                <label for="mens-f-obs">Observação (opcional)</label>
+                <input id="mens-f-obs" maxlength="200" autocomplete="off">
+              </div>
+              <div class="field" id="mens-f-valor-box">
+                <label for="mens-f-valor">Valor da cobrança (R$)</label>
+                <input id="mens-f-valor" inputmode="decimal" maxlength="12" autocomplete="off">
+              </div>
+              <div class="field" id="mens-f-venc-box">
+                <label for="mens-f-venc">Novo vencimento</label>
+                <input id="mens-f-venc" type="date" min="2020-01-01">
+              </div>
+              <div class="field" id="mens-f-motivo-box">
+                <label for="mens-f-motivo">Motivo (obrigatório)</label>
+                <input id="mens-f-motivo" maxlength="200" autocomplete="off">
+              </div>
+              <div class="field" id="mens-f-gcomp-box">
+                <label for="mens-f-gcomp">Competência</label>
+                <select id="mens-f-gcomp"><option value=""></option></select>
+              </div>
+              <div class="actions">
+                <button id="mens-submit" type="submit">Confirmar</button>
+                <button id="mens-cancel" type="button" class="secondary">Fechar</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
         </div>
       </div>
     </div>
 
-    <script type="module" src="js/main.js?v=97019658dd"></script>
+    <script type="module" src="js/main.js?v=3479483569"></script>
   </body>
 </html>

@@ -4,7 +4,7 @@
 // A aba só aparece para o Administrador, mas quem decide é o servidor (nega os demais perfis e valida tudo de novo).
 // Cobranças já geradas não mudam ao editar o valor: o painel avisa que vale para as próximas.
 
-import { monthChoices, fullLabel, todayIso } from './month-select.js?v=97019658dd';
+import { monthChoices, fullLabel, todayIso } from './month-select.js?v=3479483569';
 
 const PARTS = ['af-loading', 'af-error', 'af-empty', 'af-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -23,7 +23,7 @@ const SAVE_ERROR = 'Não foi possível salvar. Tente novamente.';
 /** "2027-01" -> "01/2027"; vazio -> "—". */
 const paidUntil = (v) => (/^\d{4}-\d{2}$/.test(v) ? v.slice(5) + '/' + v.slice(0, 4) : '—');
 
-export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {} }) {
+export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {}, quadro = { activate() {}, reset() {} } }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
@@ -399,15 +399,19 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
   }
 
   function applyView() {
-    const f = view === 'families' || !table;
+    const grid = view === 'grid';
+    const f = view === 'families' || (!table && !grid);
     $('af-groups').hidden = !f;
-    $('af-table-root').hidden = f;
-    $('af-q-box').hidden = !f; // a tabela já tem busca e filtros por coluna
+    $('af-table-root').hidden = grid || f;
+    $('af-grid-root').hidden = !grid;
+    $('af-q-box').hidden = !f; // a tabela e o quadro já têm busca e filtros próprios
     $('af-count').hidden = !f;
     $('af-nomatch').hidden = true;
     $('af-view-families').setAttribute('aria-pressed', String(f));
-    $('af-view-list').setAttribute('aria-pressed', String(!f));
-    $('af-views').hidden = !table;
+    $('af-view-list').setAttribute('aria-pressed', String(!f && !grid));
+    $('af-view-grid').setAttribute('aria-pressed', String(grid));
+    $('af-view-list').hidden = !table;
+    $('af-views').hidden = false;
   }
 
   function render(d) {
@@ -478,6 +482,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     submitting = false;
     closeEditor(false);
     closePackage();
+    quadro.reset();
     setNotice('');
     applyView();
     show('af-loading');
@@ -485,6 +490,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
 
   $('af-view-families').addEventListener('click', () => { view = 'families'; applyView(); });
   $('af-view-list').addEventListener('click', () => { if (table) { view = 'list'; applyView(); } });
+  $('af-view-grid').addEventListener('click', () => { view = 'grid'; applyView(); quadro.activate(); });
   $('af-q').addEventListener('input', () => { if (data) renderFamilies(); });
   $('af-refresh').addEventListener('click', () => { loaded = true; setNotice(''); load(); });
   $('af-form').addEventListener('submit', submit);

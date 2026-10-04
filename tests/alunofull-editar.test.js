@@ -36,9 +36,10 @@ function setup(respond = () => ok(DATA()), { withTable = false } = {}) {
   const auth = [];
   const opened = [];
   const packages = { opened: [], closed: 0 };
+  const grid = { activated: 0, resets: 0 };
   const api = { call: async (acao, args) => { calls.push({ acao, args }); return respond(acao, args, calls.length); } };
   const createTable = withTable ? (opts) => createDataTable({ doc: dom.doc, storage: null, download: () => {}, ...opts }) : null;
-  const af = createAlunoFull({ doc: dom.doc, api, onAuthFailure: (c) => auth.push(c), createTable, openStudent: (id) => opened.push(id), openPackage: (arg) => packages.opened.push(arg), closePackage: () => { packages.closed += 1; } });
+  const af = createAlunoFull({ doc: dom.doc, api, onAuthFailure: (c) => auth.push(c), createTable, openStudent: (id) => opened.push(id), openPackage: (arg) => packages.opened.push(arg), closePackage: () => { packages.closed += 1; }, quadro: { activate: () => { grid.activated += 1; }, reset: () => { grid.resets += 1; } } });
   const nameButton = (nome) => {
     const found = [];
     const walk = (n) => { if (n.tag === 'button' && n._t === nome) found.push(n); (n.children || []).forEach(walk); };
@@ -47,7 +48,7 @@ function setup(respond = () => ok(DATA()), { withTable = false } = {}) {
   };
   const open = async (nome) => { af.activate(); await flush(); const b = nameButton(nome); b.listeners.click(); return b; };
   const submit = async () => { dom.submit('af-form'); await flush(); };
-  return { dom, calls, auth, opened, packages, af, nameButton, open, submit };
+  return { dom, calls, auth, opened, packages, grid, af, nameButton, open, submit };
 }
 const mutations = (calls) => calls.filter((c) => c.acao !== 'alunofull.listar');
 
@@ -456,4 +457,36 @@ test('"Registrar pacote…" de um aluno com família entrega também a família;
   await b.open('Elias Solto');
   b.dom.click('af-open-pkg');
   assert.equal(b.packages.opened[0].family, null);
+});
+
+// ---------- Quadro mensal ----------
+test('"Quadro mensal": mostra o quadro, esconde famílias, busca e contagem, e ativa o quadro uma única vez', async () => {
+  const { dom, grid, af } = setup();
+  af.activate();
+  await flush();
+  assert.equal(dom.$('af-grid-root').hidden, true);
+  dom.click('af-view-grid');
+  assert.equal(dom.$('af-grid-root').hidden, false);
+  assert.equal(dom.$('af-groups').hidden, true);
+  assert.equal(dom.$('af-q-box').hidden, true);
+  assert.equal(dom.$('af-count').hidden, true);
+  assert.equal(dom.$('af-view-grid').getAttribute('aria-pressed'), 'true');
+  assert.equal(dom.$('af-view-families').getAttribute('aria-pressed'), 'false');
+  assert.equal(grid.activated, 1);
+  dom.click('af-view-families');
+  assert.equal(dom.$('af-grid-root').hidden, true);
+  assert.equal(dom.$('af-groups').hidden, false);
+  dom.click('af-view-grid');
+  assert.equal(grid.activated, 2, 'activate é idempotente no quadro; a visão só o chama ao entrar');
+});
+
+test('"Quadro mensal" aparece mesmo sem a biblioteca de tabela, e reset também reinicia o quadro', async () => {
+  const { dom, grid, af } = setup();
+  af.activate();
+  await flush();
+  assert.equal(dom.$('af-views').hidden, false);
+  dom.click('af-view-grid');
+  af.reset();
+  assert.ok(grid.resets >= 1);
+  assert.equal(dom.$('af-grid-root').hidden, true);
 });

@@ -104,11 +104,13 @@ test('alternar para Lista mostra a tabela configurável; Famílias volta ao agru
   assert.equal(dom.$('af-groups').hidden, false);
 });
 
-test('sem a tabela injetada, não há alternância (só famílias)', async () => {
+test('sem a tabela injetada, não há o botão Lista (ficam Famílias e Quadro mensal)', async () => {
   const { dom, af } = setup();
   af.activate();
   await flush();
-  assert.equal(dom.$('af-views').hidden, true);
+  assert.equal(dom.$('af-views').hidden, false);
+  assert.equal(dom.$('af-view-list').hidden, true);
+  assert.equal(dom.$('af-view-grid').hidden === true, false);
 });
 
 test('lista vazia mostra o estado vazio', async () => {
