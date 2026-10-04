@@ -433,3 +433,13 @@ button.kpi:hover .kpi-open, button.kpi:focus-visible .kpi-open { text-decoration
 .ms-msg { margin: 6px 4px; color: var(--error-text); font-size: .85rem; }
 .ms-actions { display: flex; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .ms-actions button { flex: 1; min-height: 38px; padding: 6px 12px; font-size: .9rem; }
+
+/* ---------- Pacote da família: alunos e valor de cada um ---------- */
+.pk-members { display: flex; flex-direction: column; margin-bottom: 4px; }
+.pk-member { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 2px 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.pk-member label { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; min-width: 0; }
+.pk-member label input { width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--red); }
+.pk-member > input { min-height: 38px; text-align: right; }
+.pk-member .muted { grid-column: 1 / -1; font-size: .8rem; }
+.pk-member-off { opacity: .65; }
+.pk-total { font-weight: 700; margin: 8px 0 0; }

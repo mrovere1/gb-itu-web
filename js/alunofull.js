@@ -4,7 +4,7 @@
 // A aba só aparece para o Administrador, mas quem decide é o servidor (nega os demais perfis e valida tudo de novo).
 // Cobranças já geradas não mudam ao editar o valor: o painel avisa que vale para as próximas.
 
-import { monthChoices, fullLabel, todayIso } from './month-select.js?v=580d072e4f';
+import { monthChoices, fullLabel, todayIso } from './month-select.js?v=97019658dd';
 
 const PARTS = ['af-loading', 'af-error', 'af-empty', 'af-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -273,6 +273,17 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
   }
 
   // ---------- Famílias ----------
+  /** Família no formato do painel de pacote: responsável e membros com matrícula (null se não houver 2+ membros). */
+  function packageFamily(f) {
+    if (!f || f.membros.length < 2) return null;
+    const byId = {};
+    data.alunos.forEach((a) => { byId[a.student_id] = a; });
+    return {
+      id: f.guardian_id, nome: f.nome,
+      membros: f.membros.map((id) => byId[id]).filter(Boolean).map((a) => ({ student_id: a.student_id, nome: a.nome, matricula: a.matricula })),
+    };
+  }
+
   function familyHeader(f) {
     const head = el('header', 'af-head');
     head.appendChild(el('h3', 'af-name', f.nome));
@@ -282,6 +293,13 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     if (r.mensal > 0) parts.push(money(r.mensal) + '/mês');
     if (r.pendentes > 0) parts.push(r.pendentes + (r.pendentes === 1 ? ' pendência' : ' pendências') + ' (' + money(r.valorPendente) + ')');
     head.appendChild(el('span', 'muted', parts.join(' · ')));
+    const family = canEdit() ? packageFamily(f) : null;
+    if (family) {
+      const b = el('button', 'btn-soft btn-xs', 'Registrar pacote da família');
+      b.type = 'button';
+      b.addEventListener('click', () => openPackage({ item: null, family, opener: b, formas: (data.opcoes && data.opcoes.formas) || [] }));
+      head.appendChild(b);
+    }
     return head;
   }
 
@@ -477,7 +495,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     if (!dialog) return;
     const { item, opener } = dialog;
     closeEditor(false);
-    openPackage({ item, opener, formas: (data && data.opcoes && data.opcoes.formas) || [] });
+    openPackage({ item, opener, formas: (data && data.opcoes && data.opcoes.formas) || [], family: packageFamily(familyOf(item.familia_id)) });
   });
   $('af-f-modo').addEventListener('change', updateModeBoxes);
   $('af-f-ext').addEventListener('change', updateModeBoxes);

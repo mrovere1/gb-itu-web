@@ -1,16 +1,16 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=580d072e4f';
-import { loadFirebase } from './firebase.js?v=580d072e4f';
-import { createApi } from './api.js?v=580d072e4f';
-import { createAuth } from './auth.js?v=580d072e4f';
-import { createDashboard } from './dashboard.js?v=580d072e4f';
-import { createStudentForm } from './student-form.js?v=580d072e4f';
-import { createStudents } from './students.js?v=580d072e4f';
-import { createMensalidades } from './mensalidades.js?v=580d072e4f';
-import { createAlunoFull } from './alunofull.js?v=580d072e4f';
-import { createPacote } from './pacote.js?v=580d072e4f';
-import { createDataTable } from './data-table.js?v=580d072e4f';
-import { createApp } from './app.js?v=580d072e4f';
+import { CONFIG } from './config.js?v=97019658dd';
+import { loadFirebase } from './firebase.js?v=97019658dd';
+import { createApi } from './api.js?v=97019658dd';
+import { createAuth } from './auth.js?v=97019658dd';
+import { createDashboard } from './dashboard.js?v=97019658dd';
+import { createStudentForm } from './student-form.js?v=97019658dd';
+import { createStudents } from './students.js?v=97019658dd';
+import { createMensalidades } from './mensalidades.js?v=97019658dd';
+import { createAlunoFull } from './alunofull.js?v=97019658dd';
+import { createPacote } from './pacote.js?v=97019658dd';
+import { createDataTable } from './data-table.js?v=97019658dd';
+import { createApp } from './app.js?v=97019658dd';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -66,7 +66,9 @@ const pacote = createPacote({
   doc: document,
   api,
   onAuthFailure: (code) => app.onAuthFailure(code),
-  onSaved: (r) => alunofull.refresh('Pacote registrado: ' + r.meses + (r.meses === 1 ? ' mês' : ' meses') + ', pago até ' + r.pago_ate.slice(5) + '/' + r.pago_ate.slice(0, 4)
+  onSaved: (r) => alunofull.refresh(r.familia
+    ? 'Pacote da família registrado: ' + r.membros + (r.membros === 1 ? ' aluno, ' : ' alunos, ') + new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.valor_total) + ' em ' + r.meses + (r.meses === 1 ? ' mês.' : ' meses.')
+    : 'Pacote registrado: ' + r.meses + (r.meses === 1 ? ' mês' : ' meses') + ', pago até ' + r.pago_ate.slice(5) + '/' + r.pago_ate.slice(0, 4)
     + (r.previstos ? ' (' + r.previstos + (r.previstos === 1 ? ' parcela prevista' : ' parcelas previstas') + ').' : '.')),
   onStale: () => alunofull.refresh(PACOTE_STALE),
 });

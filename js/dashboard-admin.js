@@ -1,9 +1,9 @@
 // Visão completa do painel (somente Administrador): cartões, gráficos, aniversariantes e área de trabalho.
 // Texto do servidor entra sempre por textContent. Recebe doc e callbacks por injeção; não chama a rede.
-import { renderRevenueCard } from './revenue-chart.js?v=580d072e4f';
-import { fullLabel } from './month-select.js?v=580d072e4f';
-import { createWorkspace } from './workspace.js?v=580d072e4f';
-import { deltaChip, deltaInfo } from './delta.js?v=580d072e4f';
+import { renderRevenueCard } from './revenue-chart.js?v=97019658dd';
+import { fullLabel } from './month-select.js?v=97019658dd';
+import { createWorkspace } from './workspace.js?v=97019658dd';
+import { deltaChip, deltaInfo } from './delta.js?v=97019658dd';
 
 const NUMBER = new Intl.NumberFormat('pt-BR');
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

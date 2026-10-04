@@ -234,3 +234,143 @@ test('respostas atrasadas depois de um reset são descartadas', async () => {
   await flush();
   assert.deepEqual(events.saved, []);
 });
+
+// ---------- pacote da família ----------
+const mem = (id, nome, over) => ({ student_id: id, nome, matricula: over === null ? null : { valor: 200, versao: 'v-' + id, status: 'Ativa', tipo_isencao: '', pago_ate: '', ...over } });
+const FAMILY = () => ({
+  id: 'RES-1', nome: 'Bruno Ficticio',
+  membros: [
+    mem('ALU-1', 'Bruno Ficticio', { valor: 200 }),
+    mem('ALU-2', 'Ana Ficticia', { valor: 150 }),
+    mem('ALU-3', 'Carlos Ficticio', { valor: 100, tipo_isencao: 'Bolsa / cortesia' }),
+    mem('ALU-4', 'Sem Matricula', null),
+  ],
+});
+const FAM_RESUMO = { familia: 'RES-1', codigo: 'PCT-x', modo: 'unico', mes_inicial: '2026-09', meses: 3, membros: 2, valor_total: 1050, confirmados: 2, previstos: 0, itens: [] };
+/** linhas da tabela de membros: { box, name, valor, note } */
+const rowsOf = (dom) => dom.$('pk-members').children.map((r) => ({ row: r, box: r.children[0].children[0], name: r.children[0].children[1].textContent, valor: r.children[1], note: r.children[2].textContent }));
+const checkFamily = (dom, on = true) => { dom.$('pk-f-familia').checked = on; dom.$('pk-f-familia').listeners.change(); };
+
+test('aluno com família: aparece a opção "família toda", desmarcada; sem família ela some', () => {
+  const a = setup();
+  a.pacote.open({ item: ITEM(), opener: a.opener, formas: FORMAS, family: FAMILY() });
+  assert.equal(a.dom.$('pk-family-toggle-box').hidden, false);
+  assert.equal(a.dom.$('pk-f-familia').checked, false);
+  assert.equal(a.dom.$('pk-members-box').hidden, true);
+  assert.equal(a.dom.$('pk-valor-box').hidden, false);
+  const b = setup();
+  b.open();
+  assert.equal(b.dom.$('pk-family-toggle-box').hidden, true);
+  assert.equal(b.dom.$('pk-members-box').hidden, true);
+});
+
+test('marcar "família toda": mostra os membros com valor sugerido (mensalidade × meses), troca o valor único pela soma e bloqueia quem não pode', () => {
+  const { dom, pacote, opener, fill } = setup();
+  pacote.open({ item: ITEM(), opener, formas: FORMAS, family: FAMILY() });
+  fill({ 'pk-f-meses': '3' });
+  dom.$('pk-f-meses').listeners.change();
+  checkFamily(dom);
+  assert.equal(dom.$('pk-members-box').hidden, false);
+  assert.equal(dom.$('pk-valor-box').hidden, true);
+  const rows = rowsOf(dom);
+  assert.deepEqual(rows.map((r) => r.name), ['Bruno Ficticio', 'Ana Ficticia', 'Carlos Ficticio', 'Sem Matricula']);
+  assert.deepEqual(rows.map((r) => r.box.checked), [true, true, false, false]);
+  assert.deepEqual(rows.map((r) => r.box.disabled), [false, false, true, true]);
+  assert.deepEqual(rows.slice(0, 2).map((r) => r.valor.value), ['600', '450']);
+  assert.match(rows[2].note, /isen/i);
+  assert.match(rows[3].note, /matr/i);
+  assert.match(flatText(dom.$('pk-total')), /R\$\s?1\.050,00/);
+  checkFamily(dom, false);
+  assert.equal(dom.$('pk-members-box').hidden, true);
+  assert.equal(dom.$('pk-valor-box').hidden, false);
+});
+const flatText = (n) => String(n.textContent).replace(/\s/g, ' ');
+
+test('mudar os meses atualiza só os valores que você não editou; a soma acompanha', () => {
+  const { dom, pacote, opener, fill } = setup();
+  pacote.open({ item: ITEM(), opener, formas: FORMAS, family: FAMILY() });
+  checkFamily(dom);
+  const rows = rowsOf(dom);
+  rows[0].valor.value = '999,50';
+  rows[0].valor.listeners.input();
+  fill({ 'pk-f-meses': '2' });
+  dom.$('pk-f-meses').listeners.change();
+  assert.equal(rowsOf(dom)[0].valor.value, '999,50', 'editado: preservado');
+  assert.equal(rowsOf(dom)[1].valor.value, '300', 'sugerido: 150 × 2');
+  assert.match(flatText(dom.$('pk-total')), /R\$\s?1\.299,50/);
+});
+
+test('desmarcar um membro tira o valor dele da soma', () => {
+  const { dom, pacote, opener } = setup();
+  pacote.open({ item: ITEM(), opener, formas: FORMAS, family: FAMILY() });
+  checkFamily(dom);
+  const rows = rowsOf(dom);
+  rows[1].box.checked = false;
+  rows[1].box.listeners.change();
+  assert.match(flatText(dom.$('pk-total')), /R\$\s?200,00/);
+});
+
+test('enviar para a família: chama pacotes.registrarFamilia com os membros marcados, cada um com a sua versão e o seu valor', async () => {
+  const { dom, calls, events, pacote, opener, fill, submit } = setup(() => ok({ resumo: FAM_RESUMO }));
+  pacote.open({ item: ITEM(), opener, formas: FORMAS, family: FAMILY() });
+  fill({ 'pk-f-meses': '3', 'pk-f-valor': '' });
+  dom.$('pk-f-meses').listeners.change();
+  checkFamily(dom);
+  await submit();
+  assert.deepEqual(calls, [{ acao: 'pacotes.registrarFamilia', args: ['RES-1', {
+    modo: 'unico', data: '2026-09-28', mes_inicial: '2026-09', meses: 3, forma: 'Crédito', observacao: '',
+    membros: [{ student_id: 'ALU-1', versao: 'v-ALU-1', valor_total: 600 }, { student_id: 'ALU-2', versao: 'v-ALU-2', valor_total: 450 }],
+  }] }]);
+  assert.equal(dom.$('pk-dialog').hidden, true);
+  assert.deepEqual(events.saved, [FAM_RESUMO]);
+});
+
+test('família: valida no navegador (nenhum membro, valor inválido) sem chamar o servidor, citando o aluno', async () => {
+  const { dom, calls, pacote, opener, fill, submit } = setup();
+  pacote.open({ item: ITEM(), opener, formas: FORMAS, family: FAMILY() });
+  fill({ 'pk-f-meses': '3' });
+  checkFamily(dom);
+  const rows = rowsOf(dom);
+  rows[1].valor.value = 'abc';
+  rows[1].valor.listeners.input();
+  await submit();
+  assert.match(dom.$('pk-dialog-error').textContent, /Ana Ficticia/);
+  rows[1].valor.value = '450';
+  rows[0].box.checked = false; rows[0].box.listeners.change();
+  rows[1].box.checked = false; rows[1].box.listeners.change();
+  await submit();
+  assert.match(dom.$('pk-dialog-error').textContent, /pelo menos um aluno/i);
+  assert.equal(calls.length, 0);
+});
+
+test('abrir direto pela família (sem aluno): título da família, membros já visíveis e sem a opção de alternar', () => {
+  const { dom, pacote, opener } = setup();
+  pacote.open({ item: null, opener, formas: FORMAS, family: FAMILY() });
+  assert.equal(dom.$('pk-dialog-title').textContent, 'Pacote da família · Bruno Ficticio');
+  assert.equal(dom.$('pk-family-toggle-box').hidden, true);
+  assert.equal(dom.$('pk-members-box').hidden, false);
+  assert.equal(dom.$('pk-valor-box').hidden, true);
+  assert.equal(rowsOf(dom).filter((r) => r.box.checked).length, 2);
+});
+
+test('família: mensagem do servidor (ex.: mês já pago de um membro) aparece e o painel continua aberto', async () => {
+  const { dom, pacote, opener, fill, submit } = setup(() => fail('VALIDACAO', 'x', [{ campo: 'mes_inicial', mensagem: 'Ana Ficticia: já há cobrança paga em: 2026-09.' }]));
+  pacote.open({ item: null, opener, formas: FORMAS, family: FAMILY() });
+  fill({ 'pk-f-meses': '3' });
+  await submit();
+  assert.match(dom.$('pk-dialog-error').textContent, /Ana Ficticia: já há cobrança paga/);
+  assert.equal(dom.$('pk-dialog').hidden, false);
+  assert.equal(dom.$('pk-save').disabled, false);
+});
+
+test('reset e reabertura limpam a tabela de membros (nada do uso anterior fica)', () => {
+  const { dom, pacote, opener } = setup();
+  pacote.open({ item: ITEM(), opener, formas: FORMAS, family: FAMILY() });
+  checkFamily(dom);
+  pacote.reset();
+  assert.equal(dom.$('pk-members').children.length, 0);
+  assert.equal(dom.$('pk-total').textContent, '');
+  pacote.open({ item: ITEM(), opener, formas: FORMAS });
+  assert.equal(dom.$('pk-f-familia').checked, false);
+  assert.equal(dom.$('pk-members-box').hidden, true);
+});

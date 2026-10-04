@@ -413,3 +413,47 @@ test('reset também fecha o painel de pacote', async () => {
   af.reset();
   assert.ok(packages.closed >= 1);
 });
+
+// ---------- pacote da família ----------
+const findButtons = (node, text) => {
+  const out = [];
+  const walk = (n) => { if (n.tag === 'button' && n._t === text) out.push(n); (n.children || []).forEach(walk); };
+  walk(node);
+  return out;
+};
+
+test('cabeçalho da família com 2+ membros tem "Registrar pacote da família", que abre o painel com os membros e suas matrículas', async () => {
+  const { dom, packages, af } = setup();
+  af.activate();
+  await flush();
+  const buttons = findButtons(dom.$('af-groups'), 'Registrar pacote da família');
+  assert.equal(buttons.length, 1, 'só a família RES-1 tem mais de um membro');
+  buttons[0].listeners.click();
+  assert.equal(packages.opened.length, 1);
+  const arg = packages.opened[0];
+  assert.equal(arg.item, null);
+  assert.equal(arg.opener, buttons[0]);
+  assert.deepEqual(arg.formas, ['PIX', 'Crédito']);
+  assert.equal(arg.family.id, 'RES-1');
+  assert.equal(arg.family.nome, 'Bruno Ficticio');
+  assert.deepEqual(arg.family.membros.map((m) => [m.student_id, m.nome, m.matricula && m.matricula.versao]), [['ALU-1', 'Bruno Ficticio', 'v-mat'], ['ALU-2', 'Ana Ficticia', 'v-mat']]);
+});
+
+test('sem permissão de edição não há botão de pacote da família', async () => {
+  const { dom, af } = setup(() => ok(DATA({ permissoes: { editar: false } })));
+  af.activate();
+  await flush();
+  assert.equal(findButtons(dom.$('af-groups'), 'Registrar pacote da família').length, 0);
+});
+
+test('"Registrar pacote…" de um aluno com família entrega também a família; sem família entrega null', async () => {
+  const a = setup();
+  await a.open('Ana Ficticia');
+  a.dom.click('af-open-pkg');
+  assert.equal(a.packages.opened[0].family.id, 'RES-1');
+  assert.equal(a.packages.opened[0].item.student_id, 'ALU-2');
+  const b = setup();
+  await b.open('Elias Solto');
+  b.dom.click('af-open-pkg');
+  assert.equal(b.packages.opened[0].family, null);
+});

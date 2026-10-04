@@ -2,8 +2,8 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=580d072e4f';
-import { createMonthSelect } from './month-select.js?v=580d072e4f';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=97019658dd';
+import { createMonthSelect } from './month-select.js?v=97019658dd';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });

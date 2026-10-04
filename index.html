@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
     <title>GB ITU — Sistema Interno</title>
-    <link rel="icon" href="img/icone.png?v=580d072e4f" type="image/png">
-    <link rel="stylesheet" href="css/app.css?v=580d072e4f">
-    <script src="js/framebust.js?v=580d072e4f"></script>
+    <link rel="icon" href="img/icone.png?v=97019658dd" type="image/png">
+    <link rel="stylesheet" href="css/app.css?v=97019658dd">
+    <script src="js/framebust.js?v=97019658dd"></script>
   </head>
   <body>
     <div id="view-boot" class="center" role="status" aria-live="polite">
@@ -16,7 +16,7 @@
 
     <div id="view-login" class="center" hidden>
       <section class="card login">
-        <img class="logo" src="img/logo.jpg?v=580d072e4f" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
+        <img class="logo" src="img/logo.jpg?v=97019658dd" alt="Gracie Barra Itu, Jiu-Jitsu e Defesa Pessoal" width="560" height="518">
         <h1>Sistema interno</h1>
         <p class="muted">Entre com seu e-mail e senha.</p>
         <form id="login-form" novalidate>
@@ -53,7 +53,7 @@
       <div class="shell">
         <aside id="sidebar" class="sidebar" data-open="false">
           <div class="side-brand">
-            <img class="brand" src="img/icone.png?v=580d072e4f" alt="" width="256" height="191">
+            <img class="brand" src="img/icone.png?v=97019658dd" alt="" width="256" height="191">
             <div class="side-title">
               <h1 id="school">Sistema Interno</h1>
               <span id="env" class="badge" hidden></span>
@@ -75,7 +75,7 @@
         <div class="content">
           <header class="topbar">
             <button id="nav-toggle" type="button" class="nav-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Menu"><svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-            <img class="brand" src="img/icone.png?v=580d072e4f" alt="" width="256" height="191">
+            <img class="brand" src="img/icone.png?v=97019658dd" alt="" width="256" height="191">
             <span class="topbar-name">GB Itu</span>
           </header>
 
@@ -436,6 +436,9 @@
             <p id="pk-dialog-info" class="muted"></p>
             <div id="pk-dialog-error" class="form-error" role="alert" tabindex="-1" hidden></div>
             <form id="pk-form" novalidate>
+              <div id="pk-family-toggle-box" class="field" hidden>
+                <label class="ms-item"><input id="pk-f-familia" type="checkbox"><span>Lançar para a família toda</span></label>
+              </div>
               <div class="field">
                 <label for="pk-f-modo">Como o valor entra</label>
                 <select id="pk-f-modo"></select>
@@ -452,9 +455,14 @@
                 <label for="pk-f-meses">Quantidade de meses (1 a 24)</label>
                 <input id="pk-f-meses" type="number" min="1" max="24" step="1" inputmode="numeric">
               </div>
-              <div class="field">
+              <div id="pk-valor-box" class="field">
                 <label for="pk-f-valor">Valor total do pacote (R$)</label>
                 <input id="pk-f-valor" inputmode="decimal" maxlength="12" autocomplete="off">
+              </div>
+              <div id="pk-members-box" hidden>
+                <h4 class="af-sub">Alunos da família e valor de cada um (R$)</h4>
+                <div id="pk-members" class="pk-members"></div>
+                <p id="pk-total" class="pk-total" role="status" aria-live="polite"></p>
               </div>
               <div class="field">
                 <label for="pk-f-forma">Forma de pagamento</label>
@@ -623,6 +631,6 @@
       </div>
     </div>
 
-    <script type="module" src="js/main.js?v=580d072e4f"></script>
+    <script type="module" src="js/main.js?v=97019658dd"></script>
   </body>
 </html>
