@@ -1,9 +1,9 @@
-// Visão completa do painel (somente Administrador): cartões, gráficos, aniversariantes e área de trabalho.
+// Visão completa do painel (Administrador, Gestor e Financeiro): cartões, gráficos, aniversariantes e área de trabalho.
 // Texto do servidor entra sempre por textContent. Recebe doc e callbacks por injeção; não chama a rede.
-import { renderRevenueCard } from './revenue-chart.js?v=3479483569';
-import { fullLabel } from './month-select.js?v=3479483569';
-import { createWorkspace } from './workspace.js?v=3479483569';
-import { deltaChip, deltaInfo } from './delta.js?v=3479483569';
+import { renderRevenueCard } from './revenue-chart.js?v=63e14653d0';
+import { fullLabel } from './month-select.js?v=63e14653d0';
+import { createWorkspace } from './workspace.js?v=63e14653d0';
+import { deltaChip, deltaInfo } from './delta.js?v=63e14653d0';
 
 const NUMBER = new Intl.NumberFormat('pt-BR');
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -69,7 +69,7 @@ export function createAdminDashboard({ doc, openStudent, openMensalidade = () =>
     }
     card.appendChild(el('span', 'sr-only', 'Como é calculado: ' + ind.ajuda));
     if (hasList) {
-      card.appendChild(el('span', 'kpi-open', 'Abrir área de trabalho →'));
+      card.appendChild(el('span', 'kpi-open', 'Ver detalhes →'));
       card.addEventListener('click', () => workspace.open(ind.detalhe, data, card));
     }
     return card;

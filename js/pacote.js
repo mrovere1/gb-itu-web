@@ -3,7 +3,7 @@
 // Recebe doc e api por injeção; só importa a lista de meses (month-select). Texto do servidor entra sempre por textContent.
 // O resumo na tela é só uma prévia: quem calcula, valida e grava é o servidor.
 
-import { monthChoices, fullLabel } from './month-select.js?v=3479483569';
+import { monthChoices, fullLabel } from './month-select.js?v=63e14653d0';
 
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
 const STALE = new Set(['VERSAO_DESATUALIZADA', 'ESTADO_INVALIDO', 'NAO_ENCONTRADO']);
@@ -32,7 +32,7 @@ function installments(total, n) {
   return { base: base / 100, last: (all - base * (n - 1)) / 100 };
 }
 
-export function createPacote({ doc, api, today = defaultToday, onSaved = () => {}, onStale = () => {}, onAuthFailure = () => {} }) {
+export function createPacote({ doc, api, today = defaultToday, onSaved = () => {}, onStale = () => {}, onTimeout = () => {}, onAuthFailure = () => {}, notify = () => {} }) {
   const $ = (id) => doc.getElementById(id);
   let dialog = null;   // { item, family, opener, familyMode, rows }
   let submitting = false;
@@ -295,6 +295,14 @@ export function createPacote({ doc, api, today = defaultToday, onSaved = () => {
       if (mine !== generation) return;
       submitting = false;
       $('pk-save').disabled = false;
+      const timeout = err && err.name === 'TransportError' && err.kind === 'timeout';
+      if (timeout) {
+        close(false);
+        const aviso = 'O servidor demorou para responder. O pacote pode ter sido registrado: confira o painel atualizado.';
+        notify(aviso, 'error');
+        onTimeout(aviso);
+        return;
+      }
       showError(err && err.name === 'TransportError' ? err.message : SAVE_ERROR);
       return;
     }

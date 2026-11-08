@@ -48,7 +48,7 @@ main:focus { outline: none; }
 .side-title h1 { margin: 0; font-size: .875rem; font-weight: 700; letter-spacing: .01em; color: #fff; overflow-wrap: anywhere; }
 .badge { background: #f0b429; color: var(--ink); padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
 .tabs { display: flex; flex-direction: column; gap: 2px; }
-.tab { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; color: #cfcfcf; border: 0; border-radius: 8px; padding: 8px 10px; min-height: 40px; font-weight: 500; font-size: .85rem; box-shadow: inset 3px 0 0 transparent; }
+.tab { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; color: #cfcfcf; border: 0; border-radius: 8px; padding: 8px 10px; min-height: 44px; font-weight: 500; font-size: .85rem; box-shadow: inset 3px 0 0 transparent; }
 .tab .ico { flex: none; opacity: .9; width: 18px; height: 18px; }
 .tab:hover { filter: none; color: #fff; background: rgba(255, 255, 255, .08); }
 .tab[aria-current="page"] { color: #fff; background: rgba(255, 255, 255, .13); box-shadow: inset 3px 0 0 var(--red); }
@@ -476,8 +476,48 @@ button.qd-vazio:hover { background: var(--tint); }
 .qd-chip.qd-vazio { border: 1px dashed #b0b0b0; }
 .qd-actions { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
 .qd-actions button { width: 100%; text-align: left; }
+.qd-lbl, .qd-val { display: block; }
+.qd-val { font-size: .7rem; font-weight: 500; }
 .qd-primary { background: var(--red); color: #fff; border-color: var(--red); }
 @media (max-width: 860px) {
   .qd-table .qd-name { min-width: 130px; }
   .qd-cell { min-width: 64px; font-size: .75rem; }
+}
+
+
+/* ---------- Login: mostrar senha, lembrar-me e recuperação ---------- */
+.field-inline { display: flex; gap: 8px; align-items: stretch; }
+.field-inline input { flex: 1 1 auto; min-width: 0; }
+.field-inline button { flex: none; min-width: 96px; }
+.login-remember { margin: 4px 0 12px; }
+.login-submit { width: 100%; }
+.login-links { margin: 10px 0 0; text-align: center; }
+.login-links .link { border: 0; background: transparent; padding: 6px 8px; min-height: 36px; text-decoration: underline; font-weight: 500; }
+.login-support { margin: 12px 0 0; font-size: .85rem; text-align: center; }
+.card-inset { border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-top: 12px; background: var(--tint); }
+#view-boot-error .card { max-width: 480px; }
+#view-boot-error h1 { font-size: 1.1rem; margin-top: 0; }
+
+/* ---------- Atalho de busca ---------- */
+.kbd { margin-left: auto; font-size: .7rem; border: 1px solid #555; border-radius: 4px; padding: 1px 6px; color: #cfcfcf; }
+.search-trigger { margin-bottom: 6px; }
+.search { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px 16px; }
+.search-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); }
+.search-panel { position: relative; width: min(640px, 100%); max-height: 80vh; overflow-y: auto; background: var(--bg); border-radius: var(--radius); padding: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+.search-panel input[type="search"] { font-size: 1.05rem; }
+.search-results { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.search-item { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-weight: 400; padding: 10px 12px; min-height: 52px; }
+.search-item[aria-selected="true"] { border-color: var(--red); box-shadow: inset 3px 0 0 var(--red); background: var(--tint); }
+#search-hint { margin: 6px 0; font-size: .82rem; }
+
+/* ---------- Aviso curto (toast) ---------- */
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 80; max-width: min(560px, calc(100vw - 32px)); background: #143d2c; color: #fff; padding: 12px 16px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); font-size: .92rem; }
+.toast[data-kind="error"] { background: #7a1a12; }
+
+/* ---------- Ações rápidas do Início ---------- */
+.home-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 480px) {
+  .toast { left: 16px; right: 16px; transform: none; max-width: none; }
+  .search-panel { padding: 12px; }
 }

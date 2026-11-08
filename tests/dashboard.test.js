@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDashboard } from '../js/dashboard.js';
 import { createDom, flush } from './helpers/dom-env.js';
+import { ADMIN } from './helpers/dash-fixtures.js';
 
 const DATA = {
   escola: 'Gracie Barra Itu',
@@ -161,4 +162,49 @@ test('duas atualizações sobrepostas: só a mais recente é exibida', async () 
   const staleResult = await a;
   assert.deepEqual(staleResult, { ok: false, code: 'STALE' });
   assert.equal(dom.$('total').textContent, '7');
+});
+
+test('ações rápidas: Recepcao cadastra, Financeiro recebe, Consulta não vê nenhuma', () => {
+  const dom = createDom();
+  const seen = [];
+  const dashboard = createDashboard({
+    doc: dom.doc,
+    api: { call: async () => ok(DATA) },
+    openMensalidade: (f) => seen.push(['mens', f]),
+    openNewStudent: () => seen.push(['novo']),
+  });
+  dashboard.setPerfil('Recepcao');
+  assert.deepEqual([dom.$('home-actions').hidden, dom.$('home-new-student').hidden, dom.$('home-pay').hidden], [false, false, true]);
+  dom.click('home-new-student');
+  assert.deepEqual(seen.pop(), ['novo']);
+
+  dashboard.setPerfil('Financeiro');
+  assert.deepEqual([dom.$('home-new-student').hidden, dom.$('home-pay').hidden, dom.$('home-mensalidades').hidden], [true, false, false]);
+  dom.click('home-pay');
+  assert.deepEqual(seen.pop(), ['mens', { status: 'Pendente' }]);
+  dom.click('home-mensalidades');
+  assert.deepEqual(seen.pop(), ['mens', {}]);
+
+  dashboard.setPerfil('Consulta');
+  assert.equal(dom.$('home-actions').hidden, true);
+});
+
+test('precisa de atenção: inadimplentes e aniversariante de hoje no painel completo', async () => {
+  const { dom, dashboard } = setup(() => ok(ADMIN));
+  dashboard.setPerfil('Administrador');
+  await dashboard.load();
+  assert.equal(dom.$('home-attention').hidden, false);
+  assert.deepEqual(dom.$('home-attention-list').children.map((li) => li.textContent), [
+    '4 alunos em atraso · R$ 860,00 em aberto',
+    '1 aniversariante hoje',
+  ]);
+});
+
+test('precisa de atenção: escondido no painel básico e ao sair', async () => {
+  const { dom, dashboard } = setup(() => ok(DATA));
+  await dashboard.load();
+  assert.equal(dom.$('home-attention').hidden, true);
+  dashboard.reset();
+  assert.equal(dom.$('home-actions').hidden, true);
+  assert.equal(dom.$('home-attention').hidden, true);
 });

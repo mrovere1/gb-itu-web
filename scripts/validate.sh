@@ -8,6 +8,9 @@ fail() { echo "FALHA: $1" >&2; exit 1; }
 echo "==> Lint"
 npx --no-install eslint .
 
+echo "==> Estrutura do HTML"
+node scripts/validate-html.js index.html
+
 echo "==> Testes"
 node --test "tests/**/*.test.js"
 

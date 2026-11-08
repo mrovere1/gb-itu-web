@@ -184,7 +184,7 @@ test('registrar pagamento: abre a janela com data de hoje, envia versão e campo
   opener.listeners.click();
   assert.equal(dom.$('mens-dialog').hidden, false);
   assert.equal(dom.$('mens-dialog-title').textContent, 'Registrar pagamento');
-  assert.match(flat(dom.$('mens-dialog-info').textContent), /Ana Ficticia · competência 09\/2026 · R\$ 250,00\. O pagamento é sempre integral\./);
+  assert.match(flat(dom.$('mens-dialog-info').textContent), /Ana Ficticia · mês 09\/2026 · R\$ 250,00\. O pagamento é sempre integral\./);
   assert.equal(dom.$('mens-f-data').value, '2026-09-30');
   assert.equal(dom.$('mens-f-data').max, '2026-09-30');
   assert.deepEqual(['mens-f-data-box', 'mens-f-forma-box', 'mens-f-conta-box', 'mens-f-obs-box'].map((id) => dom.$(id).hidden), [false, false, false, false]);
@@ -484,7 +484,7 @@ test('gerar sem nada novo desabilita a confirmação e explica; trocar a compet�
   dom.click('mens-generate');
   await flush();
   assert.equal(dom.$('mens-submit').disabled, true);
-  assert.equal(dom.$('mens-dialog-error').children[0].textContent, 'Não há cobranças novas para esta competência.');
+  assert.equal(dom.$('mens-dialog-error').children[0].textContent, 'Não há cobranças novas para este mês.');
   dom.$('mens-f-gcomp').value = '2026-10';
   dom.$('mens-f-gcomp').listeners.change();
   await flush();
@@ -702,11 +702,12 @@ test('tabela: botão de ação da linha abre a mesma janela de operação; filtr
   assert.deepEqual(s.names(), ['Bruno Ficticio']);
 });
 
-test('sem createTable não há alternância e a lista de cartões continua sendo a única visão; reset volta aos cartões', async () => {
+test('sem createTable não há a visão Tabela (só Cartões e Quadro); reset volta aos cartões', async () => {
   const plain = setup();
   plain.mens.activate();
   await flush();
-  assert.equal(plain.dom.$('mens-views').hidden, true);
+  assert.equal(plain.dom.$('mens-view-table').hidden, true, 'sem createTable não há a visão Tabela');
+  assert.equal(plain.dom.$('mens-view-grid').hidden, false);
   const s = tableSetup();
   s.mens.activate();
   await flush();
@@ -743,4 +744,171 @@ test('qualquer falha ao desenhar a lista mostra a mensagem genérica e o botão 
   await flush();
   assert.deepEqual(s.dom.visible(PARTS), ['mens-error']);
   assert.equal(s.dom.$('mens-error-msg').textContent, 'Não foi possível concluir. Tente novamente.');
+});
+
+// ---------- Quadro (alunos × meses) ----------
+const GRID_ITENS = [
+  item({ charge_id: 'C1', student_id: 'ALU-1', nome: 'Ana Ficticia', competencia: '2026-08', status: 'Paga', vencida: false, valor: 250, pagamento: { status: 'Confirmado', data: '2026-08-10', forma: 'PIX', valor: 250 } }),
+  item({ charge_id: 'C2', student_id: 'ALU-1', nome: 'Ana Ficticia', competencia: '2026-09', status: 'Pendente', vencida: true, valor: 250 }),
+  item({ charge_id: 'C3', student_id: 'ALU-2', nome: 'Bruno Ficticio', competencia: '2026-09', status: 'Coberta por pacote', vencida: false, valor: 200, acoes: { desfazerPacote: true } }),
+];
+const GRID_LIST = () => LIST(GRID_ITENS, { competencia: '2026-09', competencias: ['2026-08', '2026-09'] });
+const gridRows = (dom) => dom.$('mens-grid-table').children[1].children;
+const gridHead = (dom) => dom.$('mens-grid-table').children[0].children[0].children.map((th) => th.textContent);
+const gridCells = (tr) => tr.children.slice(1, -1).map((td) => td.children[0]);
+
+test('quadro: com 2+ meses abre sozinho, uma linha por aluno e uma coluna por mês, e o mês sem cobrança fica vazio', async () => {
+  const { dom, calls, mens } = setup(() => ok(GRID_LIST()));
+  mens.activate();
+  await flush();
+  assert.equal(calls.length, 1, 'usa a mesma chamada: nenhuma chamada nova ao servidor');
+  assert.equal(dom.$('mens-grid-root').hidden, false);
+  assert.equal(dom.$('mens-list').hidden, true);
+  assert.equal(dom.$('mens-view-grid').getAttribute('aria-pressed'), 'true');
+  assert.deepEqual(gridHead(dom), ['Aluno', 'ago/26', 'set/26', 'Pendentes']);
+  const rows = gridRows(dom);
+  assert.equal(rows.length, 2, 'Ana e Bruno aparecem uma vez cada');
+  assert.equal(rows[0].children[0].children[0].textContent, 'Ana Ficticia');
+  const [ana8, ana9] = gridCells(rows[0]);
+  assert.equal(ana8.className, 'qd-cell qd-pago');
+  assert.equal(ana9.className, 'qd-cell qd-pend qd-venc');
+  assert.equal(rows[0].children[3].textContent, '1', 'Ana tem 1 pendente');
+  const [bruno8, bruno9] = gridCells(rows[1]);
+  assert.equal(bruno8.className, 'qd-cell qd-vazio qd-off');
+  assert.equal(bruno8.textContent, '—');
+  assert.equal(bruno9.className, 'qd-cell qd-pacote');
+});
+
+test('quadro: com 1 mês abre em cartões; o botão Quadro alterna e a escolha da pessoa vale nas próximas cargas', async () => {
+  const { dom, mens } = setup(() => ok(LIST(GRID_ITENS.slice(1, 2))));
+  mens.activate();
+  await flush();
+  assert.equal(dom.$('mens-grid-root').hidden, true);
+  assert.equal(dom.$('mens-list').hidden, false);
+  dom.click('mens-view-grid');
+  assert.equal(dom.$('mens-grid-root').hidden, false);
+  assert.deepEqual(gridHead(dom), ['Aluno', 'set/26', 'Pendentes']);
+  dom.click('mens-refresh');
+  await flush();
+  assert.equal(dom.$('mens-grid-root').hidden, false, 'a escolha manual é mantida após atualizar');
+  dom.click('mens-view-cards');
+  assert.equal(dom.$('mens-grid-root').hidden, true);
+  assert.equal(dom.$('mens-list').hidden, false);
+});
+
+test('quadro: clicar na célula abre o cartão com detalhes e só as ações permitidas; a ação abre a janela da operação', async () => {
+  const { dom, mens } = setup(() => ok(GRID_LIST()));
+  mens.activate();
+  await flush();
+  const [, ana9] = gridCells(gridRows(dom)[0]);
+  ana9.listeners.click();
+  assert.equal(dom.$('mens-cell').hidden, false);
+  assert.equal(dom.$('view-mensalidades-inner').inert, true);
+  assert.match(allText(dom.$('mens-cell-title')), /Ana Ficticia · 09\/2026/);
+  const details = allText(dom.$('mens-cell-details'));
+  assert.match(details, /Pendente \(vencida\)/);
+  assert.deepEqual(labels(dom.$('mens-cell-actions').children), ['Registrar pagamento', 'Alterar vencimento', 'Cancelar cobrança']);
+  dom.$('mens-cell-actions').children[0].listeners.click();
+  assert.equal(dom.$('mens-cell').hidden, true);
+  assert.equal(dom.$('mens-dialog').hidden, false, 'abre a janela de registrar pagamento');
+});
+
+test('quadro: Esc e Fechar fecham o cartão da célula e devolvem o foco; célula sem ação explica', async () => {
+  const { dom, mens, press } = setup(() => ok(GRID_LIST()));
+  mens.activate();
+  await flush();
+  const [, ana9] = gridCells(gridRows(dom)[0]);
+  ana9.listeners.click();
+  press('Escape');
+  assert.equal(dom.$('mens-cell').hidden, true);
+  assert.equal(dom.$('view-mensalidades-inner').inert, false);
+  assert.ok(ana9.focused >= 1);
+  const noAction = LIST([item({ acoes: {} })], { competencias: ['2026-08', '2026-09'] });
+  const t = setup(() => ok(noAction));
+  t.mens.activate();
+  await flush();
+  gridCells(gridRows(t.dom)[0])[1].listeners.click();
+  assert.equal(t.dom.$('mens-cell-info').textContent, 'Nenhuma ação disponível para esta cobrança.');
+  t.dom.click('mens-cell-close');
+  assert.equal(t.dom.$('mens-cell').hidden, true);
+});
+
+test('quadro: exporta CSV com os meses do filtro e o status por mês; reset limpa o quadro', async () => {
+  const files = [];
+  const dom = createDom();
+  const api = { call: async () => ok(GRID_LIST()) };
+  const mens = createMensalidades({ doc: dom.doc, api, download: (name, text) => files.push({ name, text }) });
+  mens.activate();
+  await flush();
+  dom.click('mens-grid-csv');
+  assert.equal(files.length, 1);
+  assert.equal(files[0].name, 'mensalidades-quadro-2026-08-a-2026-09.csv');
+  const lines = files[0].text.replace('﻿', '').trim().split('\r\n');
+  assert.equal(lines[0], 'Aluno;ago/26;set/26;Pendentes');
+  assert.match(lines[1], /^Ana Ficticia;Paga .*250,00;Pendente \(vencida\) .*250,00;1$/);
+  assert.match(lines[2], /^Bruno Ficticio;;Coberta por pacote .*200,00;0$/);
+  mens.reset();
+  assert.equal(dom.$('mens-grid-table').children.length, 0);
+  assert.equal(dom.$('mens-grid-root').hidden, true);
+});
+
+test('totais: período anterior sem cobranças não mostra comparação (nem rótulo de ano antigo com R$ 0,00)', async () => {
+  const { dom, mens } = setup(() => ok(LIST([item()], { totaisAnterior: { cobrancas: 0, previsto: 0, pago: 0, pendente: 0, vencido: 0 }, periodoAnteriorRotulo: 'fev/25–dez/25' })));
+  mens.activate();
+  await flush();
+  dom.$('mens-totals').children.forEach((card) => {
+    assert.equal(allText(card).includes('fev/25'), false);
+    assert.equal(card.children.length, 2, 'só o rótulo e o valor, sem variação nem período anterior');
+  });
+});
+
+test('openWith com status: o filtro entra na primeira chamada, antes de as opções existirem', async () => {
+  const { dom, calls, mens } = setup();
+  mens.openWith({ status: 'Pendente' });
+  await flush();
+  assert.deepEqual(calls[0], { acao: 'mensalidades.listar', args: [{ competencia: '', busca: '', status: 'Pendente' }] });
+  assert.equal(dom.$('mens-status').value, 'Pendente');
+});
+
+test('pagamento registrado: avisa o próximo mês pendente e mostra o toast', async () => {
+  const dom = createDom();
+  const notes = [];
+  const pendente = LIST([item({ pendencias: [{ competencia: '2026-10', valor: 250, vencida: false }] })]);
+  const api = { call: async (acao) => (acao === 'mensalidades.registrarPagamento' ? ok(item({ status: 'Paga' })) : ok(pendente)) };
+  const mens = createMensalidades({ doc: dom.doc, api, notify: (t) => notes.push(t) });
+  mens.activate();
+  await flush();
+  dom.$('mens-list').children[0].children[0].children[3].children[0].listeners.click();
+  dom.submit('mens-form');
+  await flush();
+  const esperado = 'Pagamento registrado. Próximo mês pendente: out/26 (' + money(250) + ').';
+  assert.equal(dom.$('mens-notice').textContent, esperado);
+  assert.deepEqual(notes, [esperado]);
+});
+
+test('timeout em ação financeira: fecha a janela, avisa que pode ter sido concluída e recarrega', async () => {
+  const dom = createDom();
+  const calls = [];
+  const notes = [];
+  const api = {
+    call: async (acao) => {
+      calls.push(acao);
+      if (acao === 'mensalidades.registrarPagamento') {
+        throw Object.assign(new Error('O servidor demorou para responder.'), { name: 'TransportError', kind: 'timeout' });
+      }
+      return ok(LIST());
+    },
+  };
+  const mens = createMensalidades({ doc: dom.doc, api, notify: (t, k) => notes.push([t, k]) });
+  mens.activate();
+  await flush();
+  dom.$('mens-list').children[0].children[0].children[3].children[0].listeners.click();
+  dom.submit('mens-form');
+  await flush();
+  await flush();
+  assert.equal(dom.$('mens-dialog').hidden, true);
+  assert.match(dom.$('mens-notice').textContent, /pode ter sido concluída/);
+  assert.equal(dom.$('mens-notice').hidden, false);
+  assert.deepEqual(notes.map((n) => n[1]), ['error']);
+  assert.ok(calls.filter((a) => a === 'mensalidades.listar').length >= 2);
 });

@@ -2,7 +2,7 @@
 // Regras: o sistema só aparece depois de `sessao` responder ok; sessao roda uma vez por sessão;
 // ACESSO_NEGADO e NAO_AUTENTICADO encerram a sessão; respostas de sessões antigas são descartadas.
 
-const VIEWS = ['view-boot', 'view-login', 'view-session', 'view-app'];
+const VIEWS = ['view-boot', 'view-boot-error', 'view-login', 'view-session', 'view-app'];
 const AUTH_FAILURES = Object.freeze({
   ACESSO_NEGADO: 'Esta conta não tem acesso ao sistema. Procure a administração.',
   NAO_AUTENTICADO: 'Sua sessão expirou. Entre novamente.',
@@ -15,10 +15,12 @@ const ACTIVITY_EVENTS = ['keydown', 'pointerdown', 'touchstart', 'scroll'];
 
 const MENSALIDADES_PERFIS = ['Administrador', 'Gestor', 'Financeiro']; // só a vitrine: o servidor é quem autoriza
 const ALUNOFULL_PERFIS = ['Administrador'];   // só a vitrine: o servidor é quem autoriza
+const PAGAMENTO_PERFIS = ['Administrador', 'Financeiro']; // vitrine da ação rápida; o servidor autoriza
 const TABS = [['dashboard', 'tab-dashboard', 'view-dashboard'], ['students', 'tab-students', 'view-students'], ['mensalidades', 'tab-mensalidades', 'view-mensalidades'], ['alunofull', 'tab-alunofull', 'view-alunofull']];
 
-export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {}, openWith() {} }, alunofull = { activate() {}, reset() {} } }) {
+export function createApp({ doc, auth, api, dashboard, students, mensalidades = { activate() {}, reset() {}, openWith() {} }, alunofull = { activate() {}, reset() {} }, restoreSession = false }) {
   const $ = (id) => doc.getElementById(id);
+  let perfil = '';            // perfil da sessão (só vitrine: quem autoriza é o servidor)
   let busy = false;           // login em andamento
   let signedIn = false;       // já há usuário do Firebase (evita carregar a sessão duas vezes)
   let generation = 0;         // invalida respostas de sessões que já terminaram
@@ -80,7 +82,10 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
 
   function toLogin() {
     generation += 1;
+    $('login-reset').hidden = true;
     signedIn = false;
+    perfil = '';
+    if (dashboard.setPerfil) dashboard.setPerfil('');
     dashboard.reset();
     students.reset();
     mensalidades.reset();
@@ -120,6 +125,8 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     try {
       if (resp.ok) {
         const usuario = resp.data.usuario;
+        perfil = usuario.perfil;
+        if (dashboard.setPerfil) dashboard.setPerfil(perfil);
         $('user-line').textContent = usuario.nome + ' · ' + usuario.perfil;
         $('tab-mensalidades').hidden = !MENSALIDADES_PERFIS.includes(usuario.perfil);
         $('tab-alunofull').hidden = !ALUNOFULL_PERFIS.includes(usuario.perfil);
@@ -157,7 +164,7 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     $('login-submit').disabled = true;
     $('login-error').hidden = true;
     try {
-      await auth.login($('login-email').value, $('login-password').value);
+      await auth.login($('login-email').value, $('login-password').value, $('login-remember').checked);
     } catch (err) {
       showLogin(err && err.name === 'AuthError' ? err.message : GENERIC_LOGIN_ERROR);
     } finally {
@@ -191,12 +198,73 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     if (signedIn && AUTH_FAILURES[code]) endSession(AUTH_FAILURES[code]);
   }
 
+  /** Senha visível só quando a pessoa pede; o valor nunca sai do campo. */
+  function setPasswordVisible(visible) {
+    $('login-password').type = visible ? 'text' : 'password';
+    $('login-show').textContent = visible ? 'Ocultar' : 'Mostrar';
+    $('login-show').setAttribute('aria-pressed', String(visible));
+  }
+
+  /** Aviso de Caps Lock: só reage a eventos reais de teclado. */
+  function checkCaps(e) {
+    if (!e || typeof e.getModifierState !== 'function') return;
+    $('login-caps').hidden = !e.getModifierState('CapsLock');
+  }
+
+  function openReset() {
+    $('login-reset-email').value = $('login-email').value;
+    $('login-reset-msg').textContent = '';
+    $('login-reset-msg').hidden = true;
+    $('login-reset').hidden = false;
+    $('login-reset-email').focus();
+  }
+
+  function closeReset() {
+    $('login-reset').hidden = true;
+    $('login-email').focus();
+  }
+
+  async function sendReset() {
+    $('login-reset-send').disabled = true;
+    $('login-reset-msg').hidden = false;
+    $('login-reset-msg').textContent = 'Enviando…';
+    try {
+      await auth.resetPassword($('login-reset-email').value);
+      $('login-reset-msg').textContent = 'Se este e-mail estiver cadastrado, você receberá um link para criar uma nova senha. Confira também a caixa de spam.';
+    } catch (e) {
+      $('login-reset-msg').textContent = e && e.name === 'AuthError' ? e.message : 'Não foi possível enviar agora. Tente de novo.';
+    } finally {
+      $('login-reset-send').disabled = false;
+    }
+  }
+
+  function canRegisterPayment() {
+    return PAGAMENTO_PERFIS.includes(perfil);
+  }
+
+  async function openNewStudent() {
+    showTab('students');
+    await students.openCreate();
+  }
+
   function start() {
-    show('view-boot');
+    // Quem pediu "lembrar-me" pode ter sessão a restaurar: mostra o boot. Os demais veem o login na hora,
+    // sem esperar o SDK do Firebase terminar de carregar.
+    if (restoreSession) show('view-boot');
+    else showLogin('');
     setNav(false, false);
     ACTIVITY_EVENTS.forEach((name) => doc.addEventListener(name, () => auth.touch()));
     doc.addEventListener('visibilitychange', () => { if (!doc.hidden) auth.checkIdle(); });
     $('login-form').addEventListener('submit', onLoginSubmit);
+    $('login-show').addEventListener('click', () => setPasswordVisible($('login-password').type !== 'text'));
+    $('login-password').addEventListener('keydown', checkCaps);
+    $('login-password').addEventListener('keyup', checkCaps);
+    $('login-forgot').addEventListener('click', openReset);
+    $('login-reset-cancel').addEventListener('click', closeReset);
+    $('login-reset-send').addEventListener('click', sendReset);
+    $('login-reset-email').addEventListener('keydown', (e) => {
+      if (e && e.key === 'Enter') { if (e.preventDefault) e.preventDefault(); sendReset(); }
+    });
     $('tab-dashboard').addEventListener('click', () => showTab('dashboard'));
     $('tab-students').addEventListener('click', () => showTab('students'));
     $('tab-mensalidades').addEventListener('click', () => showTab('mensalidades'));
@@ -208,7 +276,8 @@ export function createApp({ doc, auth, api, dashboard, students, mensalidades = 
     $('session-logout').addEventListener('click', onLogout);
     $('session-retry').addEventListener('click', () => { loadSession(); });
     auth.start(handleUser);
+    if (typeof window !== 'undefined' && window.__gbBootOk) window.__gbBootOk(); // desarma a tela de erro de carregamento
   }
 
-  return { start, onIdle, onSignOutFailed, onAuthFailure, openStudent, openMensalidade };
+  return { start, onIdle, onSignOutFailed, onAuthFailure, openStudent, openMensalidade, openNewStudent, canRegisterPayment };
 }

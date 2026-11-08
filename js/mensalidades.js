@@ -2,8 +2,9 @@
 // Recebe doc e api por injeção; não importa nada. Texto do servidor entra sempre por textContent.
 // A tela só mostra os botões que o servidor permite (`acoes`), mas quem decide é o servidor.
 
-import { deltaChip, deltaInfo, pctChange } from './delta.js?v=3479483569';
-import { createMonthSelect } from './month-select.js?v=3479483569';
+import { deltaChip, deltaInfo, pctChange } from './delta.js?v=63e14653d0';
+import { createMonthSelect } from './month-select.js?v=63e14653d0';
+import { csvCell } from './workspace.js?v=63e14653d0';
 
 const PARTS = ['mens-loading', 'mens-error', 'mens-empty', 'mens-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -13,6 +14,16 @@ const STALE = new Set(['VERSAO_DESATUALIZADA', 'ESTADO_INVALIDO', 'NAO_ENCONTRAD
 const STATUS_CLASS = {
   Paga: 'chip-paga', Pendente: 'chip-pendente', 'Coberta por pacote': 'chip-pacote', Isenta: 'chip-neutro', Suspensa: 'chip-neutro', Cancelada: 'chip-neutro',
 };
+// Quadro (alunos × meses): classes de cor compartilhadas com o quadro do Aluno Full (qd-*).
+const GRID_CLASS = { Paga: 'qd-pago', 'Coberta por pacote': 'qd-pacote', Pendente: 'qd-pend', Isenta: 'qd-isento', Suspensa: 'qd-susp', Cancelada: 'qd-canc' };
+const GRID_SHORT = { 'Coberta por pacote': 'Pacote' };
+const GRID_LEGEND = [['qd-pago', 'Paga'], ['qd-pacote', 'Pacote (pago antecipado)'], ['qd-pend', 'Pendente'], ['qd-pend qd-venc', 'Pendente vencida'], ['qd-isento', 'Isenta'], ['qd-susp', 'Suspensa'], ['qd-canc', 'Cancelada'], ['qd-vazio', 'Sem cobrança']];
+// [chave em acoes, tipo da janela, rótulo]
+const GRID_ACTIONS = [
+  ['registrar', 'pagar', 'Registrar pagamento'], ['editarVencimento', 'vencimento', 'Alterar vencimento'], ['estornar', 'estornar', 'Estornar pagamento'],
+  ['reabrir', 'reabrir', 'Voltar a pendente'], ['cancelarPrevisto', 'cancelarPrevisto', 'Cancelar parcela prevista'], ['desfazerPacote', 'desfazerPacote', 'Desfazer pacote'],
+  ['cancelar', 'cancelar', 'Cancelar cobrança'],
+];
 const MONEY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export const money = (n) => (typeof n === 'number' ? MONEY.format(n) : '—');
@@ -21,7 +32,7 @@ const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', '
 export const monthLabel = (c) => (/^\d{4}-\d{2}$/.test(c) ? MONTHS[parseInt(c.slice(5), 10) - 1] + '/' + c.slice(2, 4) : String(c));
 const compBR = (c) => (/^\d{4}-\d{2}$/.test(c) ? c.slice(5) + '/' + c.slice(0, 4) : c);
 
-export function createMensalidades({ doc, api, onAuthFailure = () => {}, createTable = null }) {
+export function createMensalidades({ doc, api, onAuthFailure = () => {}, createTable = null, download = () => {}, notify = () => {} }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
@@ -30,7 +41,10 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   let data = null;      // última lista
   let dialog = null;    // { kind, item, opener, comps }
   let submitting = false;
-  let view = 'cards';   // 'cards' | 'table'
+  let view = 'cards';   // 'cards' | 'table' | 'grid'
+  let viewChosen = false; // enquanto a pessoa não escolhe, 2+ meses abrem no quadro e 1 mês em cartões
+  let cellDialog = null; // { opener }
+  let pendingStatus = ''; // filtro pedido por outra tela antes de as opções existirem
   let table = null;
 
   function el(tag, className, text) {
@@ -54,7 +68,11 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     $('mens-notice').hidden = !text;
   }
 
-  const filters = () => ({ ...(competencias.length ? { competencias } : { competencia: '' }), busca: $('mens-q').value, status: $('mens-status').value });
+  const filters = () => ({
+    ...(competencias.length ? { competencias } : { competencia: '' }),
+    busca: $('mens-q').value,
+    status: pendingStatus || $('mens-status').value,
+  });
 
   // ---------- Lista ----------
   function setOptions(select, values, labelFor, keep) {
@@ -72,9 +90,10 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   // O que é bom: pago e previsto subirem; pendente e vencido caírem.
   const TOTALS = [['Previsto', 'previsto', 'alta-boa'], ['Pago', 'pago', 'alta-boa'], ['Pendente', 'pendente', 'alta-ma'], ['Vencido', 'vencido', 'alta-ma']];
 
-  function renderTotals(t, prev, prevLabel) {
+  function renderTotals(t, prevAll, prevLabel) {
     const box = $('mens-totals');
     box.textContent = '';
+    const prev = prevAll && prevAll.cobrancas > 0 ? prevAll : null; // período anterior sem nenhuma cobrança: não há o que comparar (evita "fev/25–dez/25: R$ 0,00")
     TOTALS.forEach(([label, key, sentido]) => {
       const pct = prev ? pctChange(t[key], prev[key]) : null;
       const info = deltaInfo(pct, sentido);
@@ -165,6 +184,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     monthSelect.setOptions(Array.isArray(d.opcoes.competencias) ? d.opcoes.competencias : competencias);
     monthSelect.setValue(competencias);
     setOptions($('mens-status'), ['', ...d.opcoes.status], (v) => (v === '' ? 'Todos os status' : v));
+    if (pendingStatus) { $('mens-status').value = pendingStatus; pendingStatus = ''; }
     $('mens-generate').hidden = !d.permissoes.gerar;
     renderTotals(d.totais, d.totaisAnterior, d.periodoAnteriorRotulo || (d.competenciaAnterior ? monthLabel(d.competenciaAnterior) : ''));
     $('mens-count').textContent = d.total === d.totais.cobrancas ? d.total + ' cobranças' : d.total + ' de ' + d.totais.cobrancas + ' cobranças';
@@ -174,6 +194,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     d.itens.forEach((i) => list.appendChild(renderRow(i)));
     show(d.itens.length === 0 ? 'mens-empty' : 'mens-ready');
     if (table) table.setRows(d.itens);
+    if (!viewChosen) view = competencias.length > 1 ? 'grid' : 'cards';
     applyView();
   }
 
@@ -223,12 +244,12 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   }
 
   function dialogInfo(kind, item) {
-    if (kind === 'pagar') return item.nome + ' · competência ' + compBR(item.competencia) + ' · ' + money(item.valor) + '. O pagamento é sempre integral.';
-    if (kind === 'vencimento') return item.nome + ' · competência ' + compBR(item.competencia) + ' · ' + money(item.valor);
+    if (kind === 'pagar') return item.nome + ' · mês ' + compBR(item.competencia) + ' · ' + money(item.valor) + '. O pagamento é sempre integral.';
+    if (kind === 'vencimento') return item.nome + ' · mês ' + compBR(item.competencia) + ' · ' + money(item.valor);
     if (kind === 'cancelar') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') será marcada como cancelada. Nada é apagado.';
     if (kind === 'estornar') return 'O pagamento de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ') será marcado como estornado e a cobrança volta a pendente. Nada é apagado.';
     if (kind === 'cancelarPrevisto') return 'A parcela prevista de ' + item.nome + ' (' + money(item.pagamento && item.pagamento.valor) + ', ' + compBR(item.competencia) + ') será cancelada e a cobrança volta a pendente. Nada é apagado.';
-    if (kind === 'lancar') return item.nome + ' · competência ' + compBR(item.competencia) + '. Cria a cobrança pendente deste mês; depois você registra o pagamento.';
+    if (kind === 'lancar') return item.nome + ' · mês ' + compBR(item.competencia) + '. Cria a cobrança pendente deste mês; depois você registra o pagamento.';
     if (kind === 'reabrir') return 'A cobrança de ' + item.nome + ' (' + compBR(item.competencia) + ', ' + money(item.valor) + ') deixa de estar coberta por pacote e volta a pendente. Nada é apagado.';
     if (kind === 'desfazerPacote') return 'Isto desfaz o pacote inteiro de ' + item.nome + ': o pagamento (' + money(item.pagamento && item.pagamento.valor) + ') é estornado ou cancelado e as cobranças dos meses cobertos voltam a pendente. Nada é apagado.';
     return '';
@@ -307,7 +328,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     if (resp.ok) {
       $('mens-dialog-info').textContent = summaryText(resp.data);
       $('mens-submit').disabled = resp.data.resumo.elegiveis === 0;
-      if (resp.data.resumo.elegiveis === 0) showDialogError('Não há cobranças novas para esta competência.');
+      if (resp.data.resumo.elegiveis === 0) showDialogError('Não há cobranças novas para este mês.');
       return;
     }
     if (AUTH_CODES[resp.error.code]) { closeDialog(false); onAuthFailure(resp.error.code); return; }
@@ -356,7 +377,18 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
       resp = await api.call(acao, args);
     } catch (err) {
       submitting = false;
-      if (dialog === mine) { $('mens-submit').disabled = false; showDialogError(err && err.name === 'TransportError' ? err.message : GENERIC_ERROR); }
+      if (dialog !== mine) return;
+      $('mens-submit').disabled = false;
+      const timeout = err && err.name === 'TransportError' && err.kind === 'timeout';
+      if (timeout) {
+        closeDialog(false);
+        const aviso = 'O servidor demorou para responder. A operação pode ter sido concluída: confira a lista atualizada.';
+        setNotice(aviso);
+        notify(aviso, 'error');
+        load(true);
+        return;
+      }
+      showDialogError(err && err.name === 'TransportError' ? err.message : GENERIC_ERROR);
       return;
     }
     submitting = false;
@@ -364,14 +396,22 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     try {
       if (resp.ok) {
         const kind = mine.kind;
-        const message = kind === 'gerar'
+        const restantes = Array.isArray(mine.item && mine.item.pendencias)
+          ? mine.item.pendencias.filter((p) => p && p.competencia !== mine.item.competencia)
+          : [];
+        const proximo = kind === 'pagar' && restantes.length
+          ? ' Próximo mês pendente: ' + monthLabel(restantes[0].competencia)
+            + (typeof restantes[0].valor === 'number' ? ' (' + money(restantes[0].valor) + ')' : '') + '.'
+          : '';
+        const message = (kind === 'gerar'
           ? resp.data.criadas + (resp.data.criadas === 1 ? ' cobrança criada' : ' cobranças criadas') + ' para ' + compBR(resp.data.competencia) + '.'
-          : okMessage;
+          : okMessage) + proximo;
         closeDialog(false);
         if (mine.ext) { mine.ext.onDone(message); return; } // aberta de fora (quadro): quem chamou recarrega a sua tela
         if (kind === 'gerar') competencias = [resp.data.competencia];
         await load(true);
         setNotice(message);
+        notify(message);
         return;
       }
       const code = resp.error.code;
@@ -395,7 +435,8 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     loaded = true;
     if (f && COMPETENCIA.test(f.competencia || '')) competencias = [f.competencia];
     $('mens-q').value = f && typeof f.busca === 'string' ? f.busca.slice(0, 60) : '';
-    $('mens-status').value = '';
+    pendingStatus = f && typeof f.status === 'string' ? f.status : '';
+    $('mens-status').value = pendingStatus;
     return load();
   }
 
@@ -412,7 +453,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
       root: $('mens-table-root'), tableId: 'mensalidades', fileName: 'mensalidades', defaultSort: ['nome', 1],
       columns: [
         { key: 'nome', label: 'Aluno', type: 'text', value: (i) => i.nome, filter: 'text' },
-        { key: 'competencia', label: 'Competência', type: 'text', value: (i) => i.competencia, text: (i) => compBR(i.competencia), filter: 'text', defaultVisible: false },
+        { key: 'competencia', label: 'Mês', type: 'text', value: (i) => i.competencia, text: (i) => compBR(i.competencia), filter: 'text', defaultVisible: false },
         { key: 'vencimento', label: 'Vencimento', type: 'date', value: (i) => i.vencimento, filter: 'date' },
         { key: 'valor', label: 'Valor', type: 'money', value: (i) => i.valor, filter: 'range' },
         { key: 'status', label: 'Status', type: 'chip', value: (i) => i.status, filter: 'select',
@@ -435,14 +476,143 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     });
   }
 
+  // ---------- Quadro: uma linha por aluno, uma coluna por mês ----------
+  /** Agrupa as cobranças por aluno (a ordem do servidor, por nome, é mantida). Cobrança ativa vence a cancelada do mesmo mês. */
+  function gridModel(itens) {
+    const byStudent = new Map();
+    itens.forEach((i) => {
+      let row = byStudent.get(i.student_id);
+      if (!row) { row = { student_id: i.student_id, nome: i.nome, cells: {}, pendentes: 0 }; byStudent.set(i.student_id, row); }
+      const cur = row.cells[i.competencia];
+      if (!cur || (cur.status === 'Cancelada' && i.status !== 'Cancelada')) row.cells[i.competencia] = i;
+    });
+    const rows = Array.from(byStudent.values());
+    rows.forEach((r) => { r.pendentes = Object.values(r.cells).filter((c) => c.status === 'Pendente').length; });
+    return rows;
+  }
+
+  const gridMonths = () => competencias.slice().sort();
+
+  function gridCell(row, iso) {
+    const c = row.cells[iso];
+    if (!c) return el('span', 'qd-cell qd-vazio qd-off', '—');
+    const cls = (GRID_CLASS[c.status] || 'qd-isento') + (c.status === 'Pendente' && c.vencida ? ' qd-venc' : '');
+    const b = el('button', 'qd-cell ' + cls);
+    b.type = 'button';
+    b.appendChild(el('span', 'qd-lbl', GRID_SHORT[c.status] || c.status));
+    b.appendChild(el('span', 'qd-val', money(c.valor)));
+    b.setAttribute('aria-label', row.nome + ', ' + monthLabel(iso) + ': ' + c.status + (c.vencida ? ' (vencida)' : '') + ', ' + money(c.valor));
+    b.addEventListener('click', () => openCell(row, iso, c, b));
+    return b;
+  }
+
+  function renderGrid() {
+    const months = gridMonths();
+    const rows = gridModel(data.itens);
+    const tableEl = $('mens-grid-table');
+    tableEl.textContent = '';
+    const thead = doc.createElement('thead');
+    const hr = doc.createElement('tr');
+    ['Aluno'].concat(months.map(monthLabel), ['Pendentes']).forEach((h, i) => {
+      const th = el('th', i === 0 ? 'qd-name' : '', h);
+      th.setAttribute('scope', 'col');
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    tableEl.appendChild(thead);
+    const body = doc.createElement('tbody');
+    rows.forEach((row) => {
+      const tr = doc.createElement('tr');
+      const name = el('td', 'qd-name');
+      name.appendChild(el('span', 'qd-student', row.nome));
+      tr.appendChild(name);
+      months.forEach((iso) => {
+        const td = el('td', 'qd-td');
+        td.appendChild(gridCell(row, iso));
+        tr.appendChild(td);
+      });
+      tr.appendChild(el('td', 'dt-num', String(row.pendentes)));
+      body.appendChild(tr);
+    });
+    tableEl.appendChild(body);
+  }
+
+  function renderGridLegend() {
+    const ul = $('mens-grid-legend');
+    ul.textContent = '';
+    GRID_LEGEND.forEach(([cls, label]) => {
+      const li = doc.createElement('li');
+      li.appendChild(el('span', 'qd-chip ' + cls, ''));
+      li.appendChild(el('span', '', label));
+      ul.appendChild(li);
+    });
+  }
+
+  function closeCell(restoreFocus = true) {
+    if (!cellDialog) return;
+    const opener = cellDialog.opener;
+    cellDialog = null;
+    $('mens-cell').hidden = true;
+    $('view-mensalidades-inner').inert = false;
+    if (restoreFocus && opener && opener.focus) opener.focus();
+  }
+
+  function cellDetail(dl, label, value) {
+    dl.appendChild(el('dt', '', label));
+    dl.appendChild(el('dd', '', value));
+  }
+
+  function openCell(row, iso, item, opener) {
+    cellDialog = { opener };
+    $('mens-cell-title').textContent = row.nome + ' · ' + compBR(iso);
+    const dl = $('mens-cell-details');
+    dl.textContent = '';
+    const actions = $('mens-cell-actions');
+    actions.textContent = '';
+    cellDetail(dl, 'Situação', item.status + (item.vencida ? ' (vencida)' : ''));
+    cellDetail(dl, 'Valor', money(item.valor));
+    if (item.vencimento) cellDetail(dl, 'Vencimento', dateBR(item.vencimento));
+    const p = item.pagamento;
+    if (p) cellDetail(dl, 'Pagamento', p.status + (p.data ? ' · ' + dateBR(p.data) : '') + (p.forma ? ' · ' + p.forma : '') + (typeof p.valor === 'number' ? ' · ' + money(p.valor) : ''));
+    GRID_ACTIONS.forEach(([flag, kind, label]) => {
+      if (!item.acoes || !item.acoes[flag]) return;
+      const b = el('button', actions.children.length === 0 ? 'qd-primary' : 'secondary', label);
+      b.type = 'button';
+      b.addEventListener('click', () => { closeCell(false); openDialog(kind, item, opener); });
+      actions.appendChild(b);
+    });
+    $('mens-cell-info').textContent = actions.children.length ? '' : 'Nenhuma ação disponível para esta cobrança.';
+    $('mens-cell').hidden = false;
+    $('view-mensalidades-inner').inert = true;
+    (actions.children[0] || $('mens-cell-close')).focus();
+  }
+
+  function exportGridCsv() {
+    if (!data) return;
+    const months = gridMonths();
+    const lines = [['Aluno'].concat(months.map(monthLabel), ['Pendentes']).map(csvCell).join(';')];
+    gridModel(data.itens).forEach((r) => {
+      const cells = months.map((iso) => { const c = r.cells[iso]; return c ? c.status + (c.vencida ? ' (vencida)' : '') + ' ' + money(c.valor) : ''; });
+      lines.push([r.nome].concat(cells, [String(r.pendentes)]).map(csvCell).join(';'));
+    });
+    const first = months[0];
+    const last = months[months.length - 1];
+    download('mensalidades-quadro-' + first + (last === first ? '' : '-a-' + last) + '.csv', '﻿' + lines.join('\r\n') + '\r\n');
+  }
+
   function applyView() {
     const t = view === 'table' && !!table;
-    $('mens-list').hidden = t;
+    const g = view === 'grid';
+    $('mens-list').hidden = t || g;
     $('mens-count').hidden = t; // a tabela já mostra a contagem
     $('mens-table-root').hidden = !t;
-    $('mens-views').hidden = !table;
-    $('mens-view-cards').setAttribute('aria-pressed', String(!t));
+    $('mens-grid-root').hidden = !g;
+    $('mens-views').hidden = false;
+    $('mens-view-cards').setAttribute('aria-pressed', String(!t && !g));
+    $('mens-view-table').hidden = !table;
     $('mens-view-table').setAttribute('aria-pressed', String(t));
+    $('mens-view-grid').setAttribute('aria-pressed', String(g));
+    if (g && data) renderGrid();
   }
 
   // ---------- Ciclo de vida ----------
@@ -462,8 +632,12 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
     dialog = null;
     submitting = false;
     view = 'cards';
+    viewChosen = false;
+    cellDialog = null;
     if (table) table.reset();
     applyView();
+    $('mens-grid-table').textContent = '';
+    $('mens-cell').hidden = true;
     $('mens-dialog').hidden = true;
     $('view-mensalidades-inner').inert = false;
     ['mens-list', 'mens-totals', 'mens-dialog-error', 'mens-error-msg', 'mens-error-ref', 'mens-notice'].forEach((id) => { $(id).textContent = ''; });
@@ -481,8 +655,13 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   $('mens-retry').addEventListener('click', () => { load(); });
   $('mens-status').addEventListener('change', () => { load(); });
   $('mens-generate').addEventListener('click', () => { if (data) openDialog('gerar', null, $('mens-generate')); });
-  $('mens-view-cards').addEventListener('click', () => { view = 'cards'; applyView(); });
-  $('mens-view-table').addEventListener('click', () => { if (table) { view = 'table'; applyView(); } });
+  $('mens-view-cards').addEventListener('click', () => { view = 'cards'; viewChosen = true; applyView(); });
+  $('mens-view-table').addEventListener('click', () => { if (table) { view = 'table'; viewChosen = true; applyView(); } });
+  $('mens-view-grid').addEventListener('click', () => { view = 'grid'; viewChosen = true; applyView(); });
+  $('mens-grid-csv').addEventListener('click', exportGridCsv);
+  $('mens-cell-close').addEventListener('click', () => closeCell());
+  $('mens-cell-backdrop').addEventListener('click', () => closeCell());
+  doc.addEventListener('keydown', (e) => { if (cellDialog && e && e.key === 'Escape') closeCell(); });
   $('mens-form').addEventListener('submit', submit);
   $('mens-cancel').addEventListener('click', () => closeDialog());
   $('mens-dialog-backdrop').addEventListener('click', () => closeDialog());
@@ -490,6 +669,7 @@ export function createMensalidades({ doc, api, onAuthFailure = () => {}, createT
   doc.addEventListener('keydown', (e) => { if (dialog && e && e.key === 'Escape') closeDialog(); });
 
   table = buildTable();
+  renderGridLegend();
   applyView();
 
   /** Abre uma das janelas de operação a partir de outra tela (ext: inertId, hoje, opcoes, onDone). */

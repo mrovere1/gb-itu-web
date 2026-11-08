@@ -11,6 +11,7 @@ const transport = (message) => Object.assign(new Error(message), { name: 'Transp
 function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = null, logoutFails = false } = {}) {
   const dom = createDom();
   const events = [];
+  const remembered = [];
   let onUser = null;
   const queue = { sessao: [...sessao], dashboard: [...dashboard] };
   const next = (q) => { const v = q.length > 1 ? q.shift() : q[0]; if (v instanceof Error) throw v; return v; };
@@ -18,10 +19,12 @@ function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = nul
   const auth = {
     loginError,
     start: (cb) => { onUser = cb; },
-    login: async (email, password) => {
+    login: async (email, password, remember) => {
       events.push(['login', email, password]);
+      remembered.push(remember);
       if (auth.loginError) throw Object.assign(new Error(auth.loginError), { name: 'AuthError' });
     },
+    resetPassword: async (email) => { events.push(['resetPassword', email]); return true; },
     logout: async () => { events.push(['logout']); if (logoutFails) return false; onUser(null); return true; },
     touch: () => events.push(['touch']),
     checkIdle: async () => { events.push(['checkIdle']); return false; },
@@ -30,16 +33,31 @@ function setup({ sessao = [SESSAO], dashboard = [{ ok: true }], loginError = nul
   const dash = { load: async () => { events.push(['dashboard']); return next(queue.dashboard); }, reset: () => events.push(['reset']) };
   const students = { activate: () => events.push(['students.activate']), reset: () => events.push(['students.reset']) };
   const app = createApp({ doc: dom.doc, auth, api, dashboard: dash, students });
-  return { dom, events, app, auth, emit: (u) => onUser(u), count: (name) => events.filter((e) => e[0] === name).length };
+  return { dom, events, remembered, app, auth, emit: (u) => onUser(u), count: (name) => events.filter((e) => e[0] === name).length };
 }
 
-test('sem sessão ao iniciar: mostra o login e nada do sistema', async () => {
+test('sem sessão ao iniciar: mostra o login na hora e nada do sistema', async () => {
   const { dom, app, emit } = setup();
   app.start();
-  assert.deepEqual(dom.visible(VIEWS), ['view-boot']);
+  assert.deepEqual(dom.visible(VIEWS), ['view-login']);
   emit(null);
   assert.deepEqual(dom.visible(VIEWS), ['view-login']);
   assert.ok(dom.$('login-email').focused > 0);
+});
+
+test('com "lembrar-me": mostra o boot enquanto a sessão é restaurada', async () => {
+  const dom = createDom();
+  const auth = { start: (cb) => { auth.cb = cb; }, login: async () => {}, logout: async () => true, getIdToken: async () => 't', touch: () => {} };
+  const api = { call: async () => ({ ok: true, data: { usuario: { nome: 'Ana', perfil: 'Gestor' } }, error: null, correlationId: 'c1' }) };
+  const dashboard = { load: async () => ({ ok: true }), reset: () => {} };
+  const students = { activate: () => {}, reset: () => {} };
+  const app = createApp({ doc: dom.doc, auth, api, dashboard, students, restoreSession: true });
+  app.start();
+  assert.deepEqual(dom.visible(VIEWS), ['view-boot']);
+  auth.cb({ email: 'ana@exemplo.com' });
+  await flush();
+  await flush();
+  assert.deepEqual(dom.visible(VIEWS), ['view-app']);
 });
 
 test('login com sucesso: entra, chama sessao e só então mostra o sistema e carrega o painel', async () => {
@@ -380,4 +398,54 @@ test('menu lateral: ao sair da conta o menu volta fechado', async () => {
   emit(null);
   assert.equal(dom.$('sidebar').getAttribute('data-open'), 'false');
   assert.equal(dom.$('sidebar-backdrop').hidden, true);
+});
+
+
+test('login: envia "lembrar-me" marcado para a autenticação', async () => {
+  const { dom, app, remembered } = setup();
+  app.start();
+  dom.$('login-email').value = 'ana@exemplo.com';
+  dom.$('login-password').value = 'segredo';
+  dom.$('login-remember').checked = true;
+  dom.submit('login-form');
+  await flush();
+  assert.deepEqual(remembered, [true]);
+});
+
+test('mostrar senha: alterna o tipo do campo e o rótulo, sem perder o valor', () => {
+  const { dom, app } = setup();
+  app.start();
+  dom.$('login-password').value = 'segredo';
+  dom.click('login-show');
+  assert.equal(dom.$('login-password').type, 'text');
+  assert.equal(dom.$('login-show').textContent, 'Ocultar');
+  assert.equal(dom.$('login-show').getAttribute('aria-pressed'), 'true');
+  assert.equal(dom.$('login-password').value, 'segredo');
+  dom.click('login-show');
+  assert.equal(dom.$('login-password').type, 'password');
+  assert.equal(dom.$('login-show').textContent, 'Mostrar');
+});
+
+test('Caps Lock: avisa quando o modificador está ativo e esconde quando sai', () => {
+  const { dom, app } = setup();
+  app.start();
+  dom.$('login-password').listeners.keydown({ getModifierState: () => true });
+  assert.equal(dom.$('login-caps').hidden, false);
+  dom.$('login-password').listeners.keyup({ getModifierState: () => false });
+  assert.equal(dom.$('login-caps').hidden, true);
+});
+
+test('esqueci minha senha: abre com o e-mail já digitado e pede o link ao Google', async () => {
+  const { dom, app, events } = setup();
+  app.start();
+  dom.$('login-email').value = 'ana@exemplo.com';
+  dom.click('login-forgot');
+  assert.equal(dom.$('login-reset').hidden, false);
+  assert.equal(dom.$('login-reset-email').value, 'ana@exemplo.com');
+  dom.click('login-reset-send');
+  await flush();
+  assert.deepEqual(events.find((e) => e[0] === 'resetPassword'), ['resetPassword', 'ana@exemplo.com']);
+  assert.match(dom.$('login-reset-msg').textContent, /Se este e-mail estiver cadastrado/);
+  dom.click('login-reset-cancel');
+  assert.equal(dom.$('login-reset').hidden, true);
 });

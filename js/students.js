@@ -28,6 +28,7 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
   let requestId = 0;       // só a requisição mais nova (e ainda válida) pode mexer na tela
   let view = 'list';       // 'list' | 'table'
   let table = null;
+  let loading = null;      // promise da lista em andamento (evita duas chamadas ao abrir o cadastro de fora)
 
   const form = createForm({
     doc,
@@ -147,7 +148,10 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
 
   function loadList() {
     dirty = false;
-    return request('alunos.listar', [currentFilter()], renderList);
+    loading = request('alunos.listar', [currentFilter()], renderList);
+    const done = () => { loading = null; };
+    loading.then(done, done);
+    return loading;
   }
 
   function backToList() {
@@ -253,6 +257,12 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
     $('form-title').focus();
   }
 
+  /** Abre o formulário de cadastro a partir de outra tela (ação rápida): carrega as opções antes. */
+  async function openCreateFromElsewhere() {
+    if (!opcoes) await (loading || loadList());
+    if (opcoes && perm.criar) openCreate();
+  }
+
   /** Mostra a lista na primeira vez (e depois de um reset). */
   function activate() {
     if (loaded) return;
@@ -278,6 +288,7 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
     detail = null;
     view = 'list';
     if (table) table.reset();
+    loading = null;
     applyView();
     $('students-q').value = '';
     setStatusOptions([]);
@@ -306,5 +317,5 @@ export function createStudents({ doc, api, createForm, onAuthFailure, createTabl
   $('detail-back').addEventListener('click', backToList);
   $('detail-edit').addEventListener('click', openEdit);
 
-  return { activate, open, reset };
+  return { activate, open, reset, openCreate: openCreateFromElsewhere };
 }

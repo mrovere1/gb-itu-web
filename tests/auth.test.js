@@ -9,11 +9,19 @@ function setup({ idleMs = 1000 } = {}) {
   let tickFn = null;
   let listener = null;
   const events = [];
+  const remembered = [];
+  const resetCalls = [];
   const firebase = {
     user: null,
     failWith: null,
+    resetFails: null,
     signOutFails: false,
     onChange: (cb) => { listener = cb; },
+    setRemember: async (v) => remembered.push(v),
+    resetPassword: async (email) => {
+      resetCalls.push(email);
+      if (firebase.resetFails) throw Object.assign(new Error('detalhe interno'), { code: firebase.resetFails });
+    },
     signIn: async (email, password) => {
       events.push(['signIn', email, password]);
       if (firebase.failWith) throw Object.assign(new Error('detalhe interno do sdk'), { code: firebase.failWith });
@@ -36,11 +44,12 @@ function setup({ idleMs = 1000 } = {}) {
     checkEveryMs: 100,
     onIdle: () => events.push(['idle']),
     onSignOutFailed: () => events.push(['signOutFailed']),
+    remember: { set: (v) => remembered.push(['pref', v]) },
   });
   const users = [];
   auth.start((u) => users.push(u));
   return {
-    auth, firebase, events, users,
+    auth, firebase, events, users, remembered, resetCalls,
     emit: (u) => { firebase.user = u; listener(u); },
     advance: (ms) => { now += ms; },
     tick: () => tickFn && tickFn(),
@@ -171,4 +180,54 @@ test('checkIdle sobrevive a falha ao sair e avisa que a saída falhou', async ()
   advance(5000);
   assert.equal(await auth.checkIdle(), true);
   assert.deepEqual(events.map((e) => e[0]), ['idle', 'signOut', 'signOutFailed']);
+});
+
+
+test('login com "lembrar-me": ajusta a persistência antes de entrar e guarda a preferência', async () => {
+  const { auth, remembered } = setup();
+  await auth.login('ana@exemplo.com', 'segredo', true);
+  assert.deepEqual(remembered, [true, ['pref', true]]);
+});
+
+test('login sem "lembrar-me": persistência por aba e preferência desligada', async () => {
+  const { auth, remembered } = setup();
+  await auth.login('ana@exemplo.com', 'segredo');
+  assert.deepEqual(remembered, [false, ['pref', false]]);
+});
+
+test('login que falha não guarda "lembrar-me"', async () => {
+  const { auth, firebase, remembered } = setup();
+  firebase.failWith = 'auth/wrong-password';
+  await assert.rejects(auth.login('ana@exemplo.com', 'errada', true));
+  assert.deepEqual(remembered, [true]);
+});
+
+test('logout limpa "lembrar-me" para a próxima visita mostrar o login', async () => {
+  const { auth, remembered, emit } = setup();
+  emit({ email: 'a@b.com' });
+  await auth.logout();
+  assert.deepEqual(remembered, [['pref', false]]);
+});
+
+test('resetPassword: envia o e-mail sem espaços e devolve true', async () => {
+  const { auth, resetCalls } = setup();
+  assert.equal(await auth.resetPassword('  ana@exemplo.com '), true);
+  assert.deepEqual(resetCalls, ['ana@exemplo.com']);
+});
+
+test('resetPassword: e-mail vazio é recusado sem chamar o Firebase', async () => {
+  const { auth, resetCalls } = setup();
+  await assert.rejects(auth.resetPassword('  '), (err) => err.name === 'AuthError' && /Informe o e-mail/.test(err.message));
+  assert.deepEqual(resetCalls, []);
+});
+
+test('resetPassword: falha vira AuthError com mensagem segura (sem código bruto)', async () => {
+  const { auth, firebase } = setup();
+  firebase.resetFails = 'auth/too-many-requests';
+  await assert.rejects(auth.resetPassword('ana@exemplo.com'), (err) => {
+    assert.equal(err.name, 'AuthError');
+    assert.match(err.message, /Muitas tentativas/);
+    assert.ok(!/auth\//.test(err.message));
+    return true;
+  });
 });

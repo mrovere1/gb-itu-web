@@ -4,7 +4,7 @@
 // A aba só aparece para o Administrador, mas quem decide é o servidor (nega os demais perfis e valida tudo de novo).
 // Cobranças já geradas não mudam ao editar o valor: o painel avisa que vale para as próximas.
 
-import { monthChoices, fullLabel, todayIso } from './month-select.js?v=3479483569';
+import { monthChoices, fullLabel, todayIso } from './month-select.js?v=63e14653d0';
 
 const PARTS = ['af-loading', 'af-error', 'af-empty', 'af-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -23,7 +23,7 @@ const SAVE_ERROR = 'Não foi possível salvar. Tente novamente.';
 /** "2027-01" -> "01/2027"; vazio -> "—". */
 const paidUntil = (v) => (/^\d{4}-\d{2}$/.test(v) ? v.slice(5) + '/' + v.slice(0, 4) : '—');
 
-export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {}, quadro = { activate() {}, reset() {} } }) {
+export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {}, quadro = { activate() {}, reset() {} }, notify = () => {} }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
@@ -124,6 +124,10 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     $('af-dialog-info').textContent = item.papel === 'responsavel'
       ? 'Hoje: responsável' + (f ? ' pela família ' + f.nome : '')
       : (item.papel === 'dependente' && f ? 'Hoje: dependente de ' + f.nome : 'Hoje: sem responsável');
+    const statusChoices = [item.status].concat((Array.isArray(item.statusPermitidos) ? item.statusPermitidos : []).filter((v) => v !== item.status));
+    setOptions($('af-f-status'), statusChoices.map((v) => [v, v]), item.status);
+    $('af-f-status').disabled = statusChoices.length < 2; // sem transição permitida, o campo só mostra o status atual
+    $('af-f-status-hint').hidden = true;
     const cur = currentChoice(item);
     setOptions($('af-f-modo'), MODOS, cur.modo);
     $('af-f-aluno-q').value = '';
@@ -172,11 +176,13 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     $('af-notice').hidden = !text;
   }
 
-  /** Lê o formulário e devolve só o que mudou: { errors, family, enrollment }. O servidor valida tudo de novo. */
+  /** Lê o formulário e devolve só o que mudou: { errors, status, family, enrollment }. O servidor valida tudo de novo. */
   function collect(item) {
     const errors = [];
     let family = null;
     let enrollment = null;
+    const statusValue = $('af-f-status').value;
+    const status = statusValue && statusValue !== item.status ? statusValue : null;
     const modo = $('af-f-modo').value;
     const cur = currentChoice(item);
     const parentesco = $('af-f-parent').value.trim();
@@ -210,7 +216,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
       if (valorText === '' || !isFinite(valor)) errors.push('Informe o valor em reais (ex.: 200 ou 200,50).');
       else enrollment = { plan_id: planId, valor, dia_vencimento: diaText === '' ? '' : Number(diaText), tipo_isencao: isencao, pago_ate: pago };
     }
-    return { errors, family, enrollment };
+    return { errors, status, family, enrollment };
   }
 
   /** Mostra o erro de uma chamada; devolve true se a sessão caiu ou os dados ficaram velhos (o painel já foi tratado). */
@@ -228,14 +234,23 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     return false;
   }
 
+  const STEP_SAVED = { 'alunofull.salvarStatus': 'O status foi salvo', 'alunofull.definirResponsavel': 'A família foi salva' };
+  const STEP_FAILED = { 'alunofull.definirResponsavel': 'a família', 'alunofull.salvarMatricula': 'a matrícula' };
+
+  /** Aviso quando um passo falha depois de outros já terem sido gravados. */
+  function partialMessage(saved, failed) {
+    const what = STEP_FAILED[failed] || 'o passo seguinte';
+    return (saved.length === 1 ? STEP_SAVED[saved[0]] : 'As alterações anteriores foram salvas') + ', mas ' + what + ' não.';
+  }
+
   async function submit(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!dialog || submitting) return;
     const mine = dialog;
     const item = mine.item;
-    const { errors, family, enrollment } = collect(item);
+    const { errors, status, family, enrollment } = collect(item);
     if (errors.length) { showDialogError(errors); return; }
-    if (!family && !enrollment) { closeEditor(); return; }
+    if (!status && !family && !enrollment) { closeEditor(); return; }
     submitting = true;
     $('af-save').disabled = true;
     showDialogError([]);
@@ -243,8 +258,10 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     let last = null;
     try {
       const steps = [];
+      if (status) steps.push(['alunofull.salvarStatus', [item.student_id, { versao: item.versaoAluno, status }]]);
       if (family) steps.push(['alunofull.definirResponsavel', [item.student_id, Object.assign({ versao: item.versaoFamilia }, family)]]);
       if (enrollment) steps.push(['alunofull.salvarMatricula', [item.student_id, Object.assign({ versao: item.matricula ? item.matricula.versao : 'nova' }, enrollment)]]);
+      const saved = [];
       for (const [acao, args] of steps) {
         const resp = await api.call(acao, args);
         if (generationAtStart !== requestId || dialog !== mine) return; // sessão encerrada ou painel fechado: descarta
@@ -252,19 +269,30 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
           if (last) { data = last; render(last); } // o primeiro passo já gravou: mostra o que ficou salvo
           if (handleFailure(resp)) return;
           $('af-save').disabled = false;
-          if (last) showDialogError(['A família foi salva, mas a matrícula não.'].concat(Array.isArray(resp.error.fields) && resp.error.fields.length ? resp.error.fields.map((f) => f.mensagem) : [resp.error.message]));
+          if (last) showDialogError([partialMessage(saved, acao)].concat(Array.isArray(resp.error.fields) && resp.error.fields.length ? resp.error.fields.map((f) => f.mensagem) : [resp.error.message]));
           return;
         }
         last = resp.data;
+        saved.push(acao);
         const updated = last.alunos.find((a) => a.student_id === item.student_id);
         if (updated) mine.item = updated; // as próximas leituras do painel usam as versões novas
       }
       render(last);
       closeEditor();
       setNotice('Alterações salvas.');
+      notify('Alterações salvas.');
     } catch (err) {
       if (dialog === mine) {
         $('af-save').disabled = false;
+        const timeout = err && err.name === 'TransportError' && err.kind === 'timeout';
+        if (timeout) {
+          closeEditor();
+          const aviso = 'O servidor demorou para responder. A alteração pode ter sido salva: confira os dados atualizados.';
+          setNotice(aviso);
+          notify(aviso, 'error');
+          load();
+          return;
+        }
         showDialogError(err && err.name === 'TransportError' ? err.message : SAVE_ERROR);
       }
     } finally {
@@ -504,6 +532,10 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     openPackage({ item, opener, formas: (data && data.opcoes && data.opcoes.formas) || [], family: packageFamily(familyOf(item.familia_id)) });
   });
   $('af-f-modo').addEventListener('change', updateModeBoxes);
+  $('af-f-status').addEventListener('change', () => {
+    const v = $('af-f-status').value;
+    $('af-f-status-hint').hidden = !dialog || v === 'Ativo' || v === dialog.item.status; // aviso: sem cobranças novas fora do status Ativo
+  });
   $('af-f-ext').addEventListener('change', updateModeBoxes);
   $('af-f-aluno-q').addEventListener('input', () => { if (dialog) fillStudentOptions(dialog.item, $('af-f-aluno').value); });
   doc.addEventListener('keydown', (e) => { if (dialog && e && e.key === 'Escape') closeEditor(); });

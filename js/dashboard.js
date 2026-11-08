@@ -1,12 +1,13 @@
 // Painel inicial. Texto do servidor entra sempre por textContent. Não importa nada: recebe doc e api por injeção.
 
-import { createAdminDashboard } from './dashboard-admin.js?v=3479483569';
-import { createMonthSelect } from './month-select.js?v=3479483569';
+import { createAdminDashboard } from './dashboard-admin.js?v=63e14653d0';
+import { createMonthSelect } from './month-select.js?v=63e14653d0';
 
 const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
 
-export function createDashboard({ doc, api, openStudent = () => {}, openMensalidade = () => {}, download = () => {} }) {
+export function createDashboard({ doc, api, openStudent = () => {}, openMensalidade = () => {}, openNewStudent = () => {}, download = () => {} }) {
   const $ = (id) => doc.getElementById(id);
+  let perfil = '';
   const admin = createAdminDashboard({ doc, openStudent, openMensalidade, download });
   let competencias = null; // lista de meses (AAAA-MM); só o Administrador escolhe; nos demais perfis fica nula
   const monthSelect = createMonthSelect({ doc, id: 'dash-comp', onChange: (list) => { competencias = list; load(); } });
@@ -14,6 +15,47 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
 
   function show(name) {
     PARTS.forEach((p) => { $(p).hidden = p !== name; });
+  }
+
+  /** Ações rápidas por perfil. Só a vitrine: o servidor autoriza cada operação. */
+  function renderActions() {
+    const canCreate = ['Administrador', 'Gestor', 'Recepcao'].includes(perfil);
+    const canPay = ['Administrador', 'Financeiro'].includes(perfil);
+    const canSeeMoney = ['Administrador', 'Gestor', 'Financeiro'].includes(perfil);
+    $('home-new-student').hidden = !canCreate;
+    $('home-pay').hidden = !canPay;
+    $('home-mensalidades').hidden = !canSeeMoney;
+    $('home-actions').hidden = !(canCreate || canSeeMoney);
+  }
+
+  function setPerfil(p) {
+    perfil = p || '';
+    renderActions();
+  }
+
+  /** Resumo curto do que precisa de atenção (só para quem tem o painel completo). */
+  function renderAttention(data) {
+    const box = $('home-attention');
+    const list = $('home-attention-list');
+    list.textContent = '';
+    if (data.completo !== true) { box.hidden = true; return; }
+    const items = [];
+    const inds = data.indicadores
+      ? [].concat(data.indicadores.principais || [], data.indicadores.complementares || [])
+      : [];
+    const inad = inds.find((i) => i.id === 'inadimplentes');
+    if (inad && inad.estado === 'ok' && inad.valor > 0) {
+      items.push(inad.valor + (inad.valor === 1 ? ' aluno em atraso' : ' alunos em atraso') + (inad.secundario ? ' · ' + inad.secundario : ''));
+    }
+    const hoje = (Array.isArray(data.aniversariantes) ? data.aniversariantes : []).filter((a) => a && a.hoje).length;
+    if (hoje) items.push(hoje + (hoje === 1 ? ' aniversariante hoje' : ' aniversariantes hoje'));
+    (Array.isArray(data.avisos) ? data.avisos : []).slice(0, 2).forEach((a) => items.push(a));
+    items.forEach((text) => {
+      const li = doc.createElement('li');
+      li.textContent = text;
+      list.appendChild(li);
+    });
+    box.hidden = items.length === 0;
   }
 
   function showError(message, reference) {
@@ -54,6 +96,7 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
       admin.reset();
     }
 
+    renderAttention(data);
     const list = $('status-list');
     list.textContent = '';
     $('empty').hidden = data.totalAlunos > 0;
@@ -86,6 +129,9 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
     competencias = null;
     monthSelect.reset();
     $('dash-comp-box').hidden = true;
+    $('home-attention').hidden = true;
+    $('home-attention-list').textContent = '';
+    $('home-actions').hidden = true;
     admin.reset(); // antes de restaurar o quadro básico: a área de trabalho devolve as partes que escondeu
     $('dash-basic').hidden = false;
     show('dash-loading');
@@ -124,8 +170,11 @@ export function createDashboard({ doc, api, openStudent = () => {}, openMensalid
     }
   }
 
+  $('home-new-student').addEventListener('click', () => { openNewStudent(); });
+  $('home-pay').addEventListener('click', () => { openMensalidade({ status: 'Pendente' }); });
+  $('home-mensalidades').addEventListener('click', () => { openMensalidade({}); });
   $('dash-retry').addEventListener('click', () => { load(); });
   $('dash-refresh').addEventListener('click', () => { load(); });
 
-  return { load, reset };
+  return { load, reset, setPerfil };
 }

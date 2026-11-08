@@ -490,3 +490,70 @@ test('"Quadro mensal" aparece mesmo sem a biblioteca de tabela, e reset também 
   assert.ok(grid.resets >= 1);
   assert.equal(dom.$('af-grid-root').hidden, true);
 });
+
+// ---------- status do aluno ----------
+const comStatus = (over = {}) => DATA({ alunos: DATA().alunos.map((a) => ({ ...a, versaoAluno: 'va-' + a.student_id, statusPermitidos: ['Trancado', 'Inativo'], ...over })) });
+const escolherStatus = (dom, value) => { dom.$('af-f-status').value = value; dom.$('af-f-status').listeners.change(); };
+
+test('status: o campo mostra o atual primeiro e só as transições permitidas; sem transição fica desabilitado', async () => {
+  const a = setup(() => ok(comStatus()));
+  await a.open('Ana Ficticia');
+  assert.deepEqual(optionValues(a.dom.$('af-f-status')), ['Ativo', 'Trancado', 'Inativo']);
+  assert.equal(a.dom.$('af-f-status').value, 'Ativo');
+  assert.equal(a.dom.$('af-f-status').disabled, false);
+  const b = setup(() => ok(comStatus({ statusPermitidos: [] })));
+  await b.open('Ana Ficticia');
+  assert.deepEqual(optionValues(b.dom.$('af-f-status')), ['Ativo']);
+  assert.equal(b.dom.$('af-f-status').disabled, true);
+});
+
+test('status: mudar só o status chama salvarStatus com a versão do aluno, avisa sobre cobranças e redesenha a lista', async () => {
+  const updated = comStatus();
+  updated.alunos[1] = { ...updated.alunos[1], status: 'Trancado', statusPermitidos: ['Ativo', 'Inativo'], versaoAluno: 'va-novo' };
+  const { dom, calls, open, submit } = setup((acao) => (acao === 'alunofull.salvarStatus' ? ok({ ...updated, salvo: 'ALU-2' }) : ok(comStatus())));
+  await open('Ana Ficticia');
+  assert.equal(dom.$('af-f-status-hint').hidden, true);
+  escolherStatus(dom, 'Trancado');
+  assert.equal(dom.$('af-f-status-hint').hidden, false, 'avisa que sem Ativo não há cobranças novas');
+  escolherStatus(dom, 'Ativo');
+  assert.equal(dom.$('af-f-status-hint').hidden, true);
+  escolherStatus(dom, 'Trancado');
+  await submit();
+  assert.deepEqual(mutations(calls), [{ acao: 'alunofull.salvarStatus', args: ['ALU-2', { versao: 'va-ALU-2', status: 'Trancado' }] }]);
+  assert.equal(dom.$('af-dialog').hidden, true);
+  assert.equal(dom.$('af-notice').textContent, 'Alterações salvas.');
+});
+
+test('status: sem mudança no campo nada é enviado; status junto com a matrícula grava o status primeiro com as versões novas', async () => {
+  const idle = setup(() => ok(comStatus()));
+  await idle.open('Ana Ficticia');
+  await idle.submit();
+  assert.deepEqual(mutations(idle.calls), []);
+
+  const after = comStatus();
+  after.alunos[1] = { ...after.alunos[1], status: 'Inativo', versaoAluno: 'va-novo' };
+  const { dom, calls, open, submit } = setup((acao) => (acao === 'alunofull.salvarStatus' ? ok({ ...after, salvo: 'ALU-2' }) : acao === 'alunofull.salvarMatricula' ? ok({ ...after, salvo: 'ALU-2' }) : ok(comStatus())));
+  await open('Ana Ficticia');
+  escolherStatus(dom, 'Inativo');
+  dom.$('af-f-valor').value = '180';
+  await submit();
+  assert.deepEqual(mutations(calls).map((c) => c.acao), ['alunofull.salvarStatus', 'alunofull.salvarMatricula']);
+});
+
+test('status: falha do status não grava o resto; falha da matrícula depois do status avisa que o status foi salvo', async () => {
+  const bad = setup((acao) => (acao === 'alunofull.salvarStatus' ? fail('VALIDACAO', 'Dados inválidos', [{ campo: 'status', mensagem: 'Mudança de status não permitida.' }]) : ok(comStatus())));
+  await bad.open('Ana Ficticia');
+  escolherStatus(bad.dom, 'Inativo');
+  bad.dom.$('af-f-valor').value = '180';
+  await bad.submit();
+  assert.deepEqual(mutations(bad.calls).map((c) => c.acao), ['alunofull.salvarStatus'], 'a matrícula não é enviada');
+  assert.match(allText(bad.dom.$('af-dialog-error')), /Mudança de status não permitida/);
+  assert.equal(bad.dom.$('af-dialog').hidden, false);
+
+  const half = setup((acao) => (acao === 'alunofull.salvarStatus' ? ok({ ...comStatus(), salvo: 'ALU-2' }) : acao === 'alunofull.salvarMatricula' ? fail('VALIDACAO', 'Dados inválidos', [{ campo: 'valor', mensagem: 'Valor inválido.' }]) : ok(comStatus())));
+  await half.open('Ana Ficticia');
+  escolherStatus(half.dom, 'Inativo');
+  half.dom.$('af-f-valor').value = '180';
+  await half.submit();
+  assert.match(half.dom.$('af-dialog-error').textContent, /O status foi salvo, mas a matrícula não\. Valor inválido/);
+});

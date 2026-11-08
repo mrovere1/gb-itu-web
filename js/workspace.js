@@ -28,7 +28,7 @@ export function csvCell(value) {
 
 const COLS = {
   nome: { label: 'Aluno', sort: (r) => fold(r.nome), csv: (r) => r.nome },
-  competencia: { label: 'Competência', sort: (r) => r.competencia, csv: (r) => compBR(r.competencia) },
+  competencia: { label: 'Mês', sort: (r) => r.competencia, csv: (r) => compBR(r.competencia) },
   vencimento: { label: 'Vencimento', sort: (r) => r.vencimento, csv: (r) => dateBR(r.vencimento) },
   atraso: { label: 'Atraso', num: true, sort: (r) => r.atraso, csv: (r) => (r.atraso == null ? '' : r.atraso + ' dias') },
   dias: { label: 'Vence em', num: true, sort: (r) => r.dias, csv: (r) => (r.dias == null ? '' : r.dias + ' dias') },
@@ -47,7 +47,7 @@ const KINDS = {
     sort: ['atraso', -1], board: true, mens: true,
     filter: ['Faixa de atraso', [['', 'Todas'], ['1-7', '1 a 7 dias'], ['8-30', '8 a 30 dias'], ['31-60', '31 a 60 dias'], ['61+', 'Mais de 60 dias']],
       (r, v) => { const b = BOARD[['1-7', '8-30', '31-60', '61+'].indexOf(v)]; return rangeFilter('atraso', b[1], b[2])(r); }],
-    empty: 'Nenhum inadimplente nesta competência.',
+    empty: 'Nenhum inadimplente neste período.',
   },
   contasAVencer: {
     label: 'Contas a vencer', cols: ['nome', 'competencia', 'vencimento', 'dias', 'valor', 'acoes'], csvCols: ['nome', 'competencia', 'vencimento', 'dias', 'valor'],
@@ -59,10 +59,10 @@ const KINDS = {
   receitaRecebida: {
     label: 'Receita recebida', cols: ['nome', 'data', 'forma', 'valor', 'acoes'], csvCols: ['nome', 'data', 'forma', 'valor'],
     sort: ['data', -1], mens: true, dynamicFilter: 'forma', filterLabel: 'Forma de pagamento',
-    empty: 'Nenhum pagamento recebido nesta competência.',
+    empty: 'Nenhum pagamento recebido neste período.',
   },
   alunosAtivos: { label: 'Alunos ativos', cols: ['nome', 'acoes'], csvCols: ['nome'], sort: ['nome', 1], empty: 'Nenhum aluno ativo.' },
-  novasMatriculas: { label: 'Novas matrículas', cols: ['nome', 'matricula', 'acoes'], csvCols: ['nome', 'matricula'], sort: ['matricula', -1], empty: 'Nenhuma matrícula nesta competência.' },
+  novasMatriculas: { label: 'Novas matrículas', cols: ['nome', 'matricula', 'acoes'], csvCols: ['nome', 'matricula'], sort: ['matricula', -1], empty: 'Nenhuma matrícula neste período.' },
 };
 const ORDER = ['inadimplentes', 'contasAVencer', 'receitaRecebida', 'alunosAtivos', 'novasMatriculas'];
 
@@ -287,7 +287,7 @@ export function createWorkspace({ doc, openStudent = () => {}, openMensalidade =
         const card = el('div', 'ws-card');
         card.setAttribute('tabindex', '0');
         card.appendChild(el('strong', '', r.nome));
-        card.appendChild(el('span', 'muted', 'Competência ' + compBR(r.competencia) + ' · vence ' + dateBR(r.vencimento)));
+        card.appendChild(el('span', 'muted', 'Mês ' + compBR(r.competencia) + ' · vence ' + dateBR(r.vencimento)));
         if (r.telefone) card.appendChild(el('span', 'muted', r.telefone));
         card.appendChild(el('span', 'ws-card-value', money(r.valor)));
         const actions = el('div', 'ws-card-actions');
@@ -313,7 +313,7 @@ export function createWorkspace({ doc, openStudent = () => {}, openMensalidade =
     $('ws-title').textContent = cfg.label;
     $('ws-crumb-title').textContent = cfg.label;
     const d = state.data;
-    $('ws-comp').textContent = Array.isArray(d.competencias) && d.competencias.length > 1 && d.periodoRotulo ? 'Competências ' + d.periodoRotulo : 'Competência ' + compBR(d.competencia);
+    $('ws-comp').textContent = Array.isArray(d.competencias) && d.competencias.length > 1 && d.periodoRotulo ? 'Meses ' + d.periodoRotulo : 'Mês ' + compBR(d.competencia);
     renderSwitch();
     renderTools();
     renderTiles(state.rows);

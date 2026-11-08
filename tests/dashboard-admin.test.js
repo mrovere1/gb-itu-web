@@ -100,7 +100,7 @@ test('cartão com lista é botão e convida a abrir a área de trabalho; sem lis
   await dashboard.load();
   [['kpi-main', 0], ['kpi-main', 1], ['kpi-main', 2], ['kpi-more', 0], ['kpi-more', 1]].forEach(([g, i]) => {
     assert.equal(card(g, i).tag, 'button', g + i);
-    assert.ok(card(g, i).children.some((c) => c.textContent === 'Abrir área de trabalho →'), g + i);
+    assert.ok(card(g, i).children.some((c) => c.textContent === 'Ver detalhes →'), g + i);
   });
   assert.equal(card('kpi-main', 3).tag, 'div');
   assert.equal(card('kpi-more', 2).tag, 'div');

@@ -2,8 +2,8 @@
 // Clicar numa célula abre um cartão com os detalhes e as ações que o servidor permite; a ação em si abre a mesma janela
 // de operação de Mensalidades (injetada em openAction). Texto do servidor entra sempre por textContent.
 
-import { createMonthSelect, fullLabel } from './month-select.js?v=3479483569';
-import { csvCell } from './workspace.js?v=3479483569';
+import { createMonthSelect, fullLabel } from './month-select.js?v=63e14653d0';
+import { csvCell } from './workspace.js?v=63e14653d0';
 
 const PARTS = ['qd-loading', 'qd-error', 'qd-empty', 'qd-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -211,7 +211,7 @@ export function createQuadro({ doc, api, openAction = () => {}, onAuthFailure = 
         });
         actions.appendChild(b);
       });
-      if (!actions.children.length) info = (c.mostrar === 'Isento' || CLASS[c.mostrar] === 'qd-susp') ? 'Mês sem cobrança por isenção ou suspensão. Para mudar, ajuste a isenção do aluno em Aluno Full.' : 'Nenhuma ação disponível para este mês.';
+      if (!actions.children.length) info = (c.mostrar === 'Isento' || CLASS[c.mostrar] === 'qd-susp') ? 'Mês sem cobrança por isenção ou suspensão. Para mudar, ajuste a isenção do aluno em Financeiro por aluno.' : 'Nenhuma ação disponível para este mês.';
     }
     $('qd-cell-info').textContent = info;
     $('qd-cell').hidden = false;

@@ -42,6 +42,10 @@ HTTP 200 sempre. Envelope: `{ "ok": true|false, "data": ..., "error": { "code", 
 | `alunos.criar` | `[payload]` | `alunos:criar` |
 | `alunos.atualizar` | `[studentId, { versao, campos, confirmarDuplicidade? }]` | `alunos:editar` |
 
+### Busca de alunos
+
+`alunos.listar` aceita `busca` com 2 a 60 caracteres. O nome (com nome social) é buscado para todos os perfis. Números com 4 ou mais dígitos também procuram **telefone** (quem tem `alunos:ver_contato`) e **CPF** (quem tem `alunos:ver_cpf`); a coluna é lida só para comparar e o valor nunca volta na resposta.
+
 ## Códigos de erro
 
 | Código | Quando | O que o portal faz |
@@ -63,7 +67,7 @@ da página, então não há restrição por origem: a proteção é o token. Exe
 ## Painel (`dashboard.obter`)
 
 Uma única chamada devolve tudo. Todos os perfis recebem a visão básica (`escola`, `ambiente`, `usuario`, `alunosPorStatus`, `totalAlunos`,
-`atualizadoEm`, `atualizadoEmLocal`, `presenca`). Quem tem `dashboard:completo` (Administrador) recebe também:
+`atualizadoEm`, `atualizadoEmLocal`, `presenca`). Quem tem `dashboard:completo` (Administrador, Gestor e Financeiro) recebe também:
 `completo: true`, `competencia`, `hoje`, `indicadores.principais[]` e `indicadores.complementares[]`, `graficos`, `aniversariantes[]` e
 `detalhes` (listas dos cartões clicáveis). Competência fora de `AAAA-MM` (2020 até o ano seguinte) devolve `VALIDACAO` com `campo: competencia`.
 

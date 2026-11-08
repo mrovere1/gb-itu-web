@@ -30,6 +30,7 @@ export function loginErrorMessage(code) {
  * firebase: { onChange(cb), signIn(email, password), signOut(), hasUser(), getIdToken(force) }
  */
 export function createAuth(deps) {
+  const remember = deps.remember || { set: () => {} };
   let signedIn = false;
   let lastActivity = deps.now();
   let timer = null;
@@ -76,12 +77,27 @@ export function createAuth(deps) {
     });
   }
 
-  async function login(email, password) {
+  /** rememberMe: mantém a sessão no computador (local) em vez de só nesta aba (session). */
+  async function login(email, password, rememberMe) {
     const cleanEmail = String(email == null ? '' : email).trim();
     const pass = String(password == null ? '' : password);
     if (!cleanEmail || !pass.trim()) throw new AuthError('Informe e-mail e senha.');
     try {
+      if (deps.firebase.setRemember) await deps.firebase.setRemember(!!rememberMe);
       await deps.firebase.signIn(cleanEmail, pass);
+      remember.set(!!rememberMe);
+    } catch (e) {
+      throw new AuthError(loginErrorMessage(e && e.code));
+    }
+  }
+
+  /** Pede ao Google o e-mail de redefinição. Não revela se o e-mail existe. */
+  async function resetPassword(email) {
+    const clean = String(email == null ? '' : email).trim();
+    if (!clean) throw new AuthError('Informe o e-mail.');
+    try {
+      await deps.firebase.resetPassword(clean);
+      return true;
     } catch (e) {
       throw new AuthError(loginErrorMessage(e && e.code));
     }
@@ -91,6 +107,7 @@ export function createAuth(deps) {
   async function logout() {
     signedIn = false;
     stopTimer();
+    remember.set(false);
     return safeSignOut();
   }
 
@@ -103,5 +120,5 @@ export function createAuth(deps) {
     if (signedIn) lastActivity = deps.now();
   }
 
-  return { start, login, logout, getIdToken, touch, checkIdle };
+  return { start, login, logout, resetPassword, getIdToken, touch, checkIdle };
 }

@@ -40,7 +40,7 @@ test('utilitários: dias entre datas, data BR e células de CSV seguras', () => 
 test('abrir com vários meses: a competência vira o período escolhido', () => {
   const s = setup();
   open(s, 'inadimplentes', { ...s.data, competencias: ['2026-08', '2026-09'], periodoRotulo: 'ago/26–set/26' });
-  assert.equal(s.dom.$('ws-comp').textContent, 'Competências ago/26–set/26');
+  assert.equal(s.dom.$('ws-comp').textContent, 'Meses ago/26–set/26');
 });
 
 test('abrir: mostra a área, esconde o painel, foca o título e informa a competência', () => {
@@ -50,7 +50,7 @@ test('abrir: mostra a área, esconde o painel, foca o título e informa a compet
   assert.deepEqual(['dash-admin', 'dash-presenca', 'dash-basic'].map((id) => s.dom.$(id).hidden), [true, true, true]);
   assert.equal(s.dom.$('ws-title').textContent, 'Inadimplentes');
   assert.equal(s.dom.$('ws-crumb-title').textContent, 'Inadimplentes');
-  assert.equal(s.dom.$('ws-comp').textContent, 'Competência 10/2026');
+  assert.equal(s.dom.$('ws-comp').textContent, 'Mês 10/2026');
   assert.ok(s.dom.$('ws-title').focused > 0);
   assert.equal(s.ws.isOpen(), true);
 });
@@ -164,7 +164,7 @@ test('exportar CSV: BOM, separador ;, cabeçalho em português, valores em vírg
   assert.equal(s.files.length, 1);
   assert.equal(s.files[0].name, 'inadimplentes-2026-10.csv');
   const lines = s.files[0].text.split('\r\n');
-  assert.equal(lines[0], '﻿Aluno;Telefone;Competência;Vencimento;Atraso;Valor');
+  assert.equal(lines[0], '﻿Aluno;Telefone;Mês;Vencimento;Atraso;Valor');
   assert.equal(lines[1], 'Bruno Ficticio;;08/2026;20/07/2026;77 dias;200,00');
   assert.equal(lines[3], 'Ana Ficticia;(11) 90000-0001;09/2026;28/09/2026;7 dias;250,00');
   assert.equal(lines.length, 6);
@@ -251,7 +251,7 @@ test('lista vazia: mensagem própria da lista, sem tabela e sem exportar', () =>
   const s = setup({ ...ADMIN, detalhes: { ...ADMIN.detalhes, inadimplentes: [] } });
   open(s);
   assert.equal(s.dom.$('ws-empty').hidden, false);
-  assert.equal(s.dom.$('ws-empty').textContent, 'Nenhum inadimplente nesta competência.');
+  assert.equal(s.dom.$('ws-empty').textContent, 'Nenhum inadimplente neste período.');
   assert.equal(s.dom.$('ws-table-wrap').hidden, true);
   assert.equal(s.dom.$('ws-export').disabled, true);
   assert.deepEqual(s.tiles()[0], ['Alunos inadimplentes', '0']);
@@ -281,7 +281,7 @@ test('refresh mantém lista, busca, filtro e ordem e limpa a seleção', () => {
   s.cell(0, 0).children[0].listeners.change();
   const novo = { ...ADMIN, competencia: '2026-09', detalhes: { ...ADMIN.detalhes, inadimplentes: [{ student_id: 'ALU-2', nome: 'Ana Ficticia', info: { competencia: '2026-09', vencimento: '2026-09-28', valor: 999 } }] } };
   s.ws.refresh(novo);
-  assert.equal(s.dom.$('ws-comp').textContent, 'Competência 09/2026');
+  assert.equal(s.dom.$('ws-comp').textContent, 'Mês 09/2026');
   assert.equal(flat(s.cell(0, 5).textContent), 'R$ 999,00');
   assert.equal(s.dom.$('ws-q').value, 'ana');
   assert.equal(s.dom.$('ws-bulk').hidden, true);
