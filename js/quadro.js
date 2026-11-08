@@ -2,8 +2,8 @@
 // Clicar numa célula abre um cartão com os detalhes e as ações que o servidor permite; a ação em si abre a mesma janela
 // de operação de Mensalidades (injetada em openAction). Texto do servidor entra sempre por textContent.
 
-import { createMonthSelect, fullLabel } from './month-select.js?v=63e14653d0';
-import { csvCell } from './workspace.js?v=63e14653d0';
+import { createMonthSelect, fullLabel } from './month-select.js?v=62458f9d62';
+import { csvCell } from './workspace.js?v=62458f9d62';
 
 const PARTS = ['qd-loading', 'qd-error', 'qd-empty', 'qd-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });

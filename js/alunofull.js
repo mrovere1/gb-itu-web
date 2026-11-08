@@ -4,7 +4,7 @@
 // A aba só aparece para o Administrador, mas quem decide é o servidor (nega os demais perfis e valida tudo de novo).
 // Cobranças já geradas não mudam ao editar o valor: o painel avisa que vale para as próximas.
 
-import { monthChoices, fullLabel, todayIso } from './month-select.js?v=63e14653d0';
+import { monthChoices, fullLabel, todayIso } from './month-select.js?v=62458f9d62';
 
 const PARTS = ['af-loading', 'af-error', 'af-empty', 'af-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -23,12 +23,13 @@ const SAVE_ERROR = 'Não foi possível salvar. Tente novamente.';
 /** "2027-01" -> "01/2027"; vazio -> "—". */
 const paidUntil = (v) => (/^\d{4}-\d{2}$/.test(v) ? v.slice(5) + '/' + v.slice(0, 4) : '—');
 
-export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {}, quadro = { activate() {}, reset() {} }, notify = () => {} }) {
+export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTable = null, openStudent = () => {}, openPackage = () => {}, closePackage = () => {}, quadro = { activate() {}, reset() {} }, notify = () => {}, initialView = 'families' }) {
   const $ = (id) => doc.getElementById(id);
+  const inicio = initialView === 'grid' ? 'grid' : 'families';
   let loaded = false;
   let requestId = 0;
   let data = null;
-  let view = 'families'; // 'families' | 'list'
+  let view = inicio; // 'families' | 'list' | 'grid'
   let table = null;
   let dialog = null;     // { item, opener }
   let submitting = false;
@@ -482,6 +483,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     if (loaded) return;
     loaded = true;
     load();
+    if (view === 'grid' && quadro.activate) quadro.activate();
   }
 
   /** Recarrega a lista e mostra um aviso depois (usado quando o painel de pacote termina). */
@@ -489,6 +491,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     loaded = true;
     setNotice('');
     await load();
+    if (view === 'grid' && quadro.load) await quadro.load();
     if (notice) setNotice(notice);
   }
 
@@ -497,7 +500,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
     requestId += 1;
     loaded = false;
     data = null;
-    view = 'families';
+    view = inicio;
     Object.keys(families).forEach((k) => { delete families[k]; });
     if (table) table.reset();
     $('af-q').value = '';
@@ -520,7 +523,7 @@ export function createAlunoFull({ doc, api, onAuthFailure = () => {}, createTabl
   $('af-view-list').addEventListener('click', () => { if (table) { view = 'list'; applyView(); } });
   $('af-view-grid').addEventListener('click', () => { view = 'grid'; applyView(); quadro.activate(); });
   $('af-q').addEventListener('input', () => { if (data) renderFamilies(); });
-  $('af-refresh').addEventListener('click', () => { loaded = true; setNotice(''); load(); });
+  $('af-refresh').addEventListener('click', () => { loaded = true; setNotice(''); load(); if (view === 'grid' && quadro.load) quadro.load(); });
   $('af-form').addEventListener('submit', submit);
   $('af-cancel').addEventListener('click', () => closeEditor());
   $('af-dialog-backdrop').addEventListener('click', () => closeEditor());

@@ -1,7 +1,7 @@
 // Painel inicial. Texto do servidor entra sempre por textContent. Não importa nada: recebe doc e api por injeção.
 
-import { createAdminDashboard } from './dashboard-admin.js?v=63e14653d0';
-import { createMonthSelect } from './month-select.js?v=63e14653d0';
+import { createAdminDashboard } from './dashboard-admin.js?v=62458f9d62';
+import { createMonthSelect } from './month-select.js?v=62458f9d62';
 
 const PARTS = ['dash-loading', 'dash-error', 'dash-ready'];
 

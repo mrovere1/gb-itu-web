@@ -212,3 +212,23 @@ test('abrir a aba ativa o Aluno Full; sair apaga e esconde a aba', async () => {
   assert.ok(events.includes('af.reset'));
   assert.equal(dom.$('tab-alunofull').hidden, true);
 });
+
+test('visão inicial em quadro: abre no quadro mensal e ativa o quadro uma única vez', async () => {
+  const dom = createDom();
+  let ativado = 0;
+  const api = { call: async () => ok(DATA()) };
+  const quadro = { activate: () => { ativado += 1; }, reset: () => {}, load: async () => { ativado += 10; } };
+  const af = createAlunoFull({ doc: dom.doc, api, quadro, initialView: 'grid' });
+  af.activate();
+  af.activate();
+  await flush();
+  assert.equal(ativado, 1);
+  assert.equal(dom.$('af-grid-root').hidden, false);
+  assert.equal(dom.$('af-groups').hidden, true);
+  assert.equal(dom.$('af-view-grid').getAttribute('aria-pressed'), 'true');
+  dom.$('af-view-families').listeners.click();
+  assert.equal(dom.$('af-groups').hidden, false);
+  assert.equal(dom.$('af-grid-root').hidden, true);
+  af.reset();
+  assert.equal(dom.$('af-view-grid').getAttribute('aria-pressed'), 'true', 'volta ao quadro no próximo login');
+});

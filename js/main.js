@@ -1,19 +1,19 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=63e14653d0';
-import { loadFirebase } from './firebase.js?v=63e14653d0';
-import { createApi } from './api.js?v=63e14653d0';
-import { createAuth } from './auth.js?v=63e14653d0';
-import { createDashboard } from './dashboard.js?v=63e14653d0';
-import { createStudentForm } from './student-form.js?v=63e14653d0';
-import { createStudents } from './students.js?v=63e14653d0';
-import { createMensalidades } from './mensalidades.js?v=63e14653d0';
-import { createAlunoFull } from './alunofull.js?v=63e14653d0';
-import { createPacote } from './pacote.js?v=63e14653d0';
-import { createQuadro } from './quadro.js?v=63e14653d0';
-import { createDataTable } from './data-table.js?v=63e14653d0';
-import { createToast } from './toast.js?v=63e14653d0';
-import { createGlobalSearch } from './global-search.js?v=63e14653d0';
-import { createApp } from './app.js?v=63e14653d0';
+import { CONFIG } from './config.js?v=62458f9d62';
+import { loadFirebase } from './firebase.js?v=62458f9d62';
+import { createApi } from './api.js?v=62458f9d62';
+import { createAuth } from './auth.js?v=62458f9d62';
+import { createDashboard } from './dashboard.js?v=62458f9d62';
+import { createStudentForm } from './student-form.js?v=62458f9d62';
+import { createStudents } from './students.js?v=62458f9d62';
+import { createMensalidades } from './mensalidades.js?v=62458f9d62';
+import { createAlunoFull } from './alunofull.js?v=62458f9d62';
+import { createPacote } from './pacote.js?v=62458f9d62';
+import { createQuadro } from './quadro.js?v=62458f9d62';
+import { createDataTable } from './data-table.js?v=62458f9d62';
+import { createToast } from './toast.js?v=62458f9d62';
+import { createGlobalSearch } from './global-search.js?v=62458f9d62';
+import { createApp } from './app.js?v=62458f9d62';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -129,6 +129,7 @@ alunofull = createAlunoFull({
   closePackage: pacote.close,
   quadro,
   notify,
+  initialView: 'grid',
 });
 app = createApp({
   doc: document,
