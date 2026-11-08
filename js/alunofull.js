@@ -4,7 +4,7 @@
 // A aba só aparece para o Administrador, mas quem decide é o servidor (nega os demais perfis e valida tudo de novo).
 // Cobranças já geradas não mudam ao editar o valor: o painel avisa que vale para as próximas.
 
-import { monthChoices, fullLabel, todayIso } from './month-select.js?v=62458f9d62';
+import { monthChoices, fullLabel, todayIso } from './month-select.js?v=8e968a628c';
 
 const PARTS = ['af-loading', 'af-error', 'af-empty', 'af-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });

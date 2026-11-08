@@ -521,3 +521,9 @@ button.qd-vazio:hover { background: var(--tint); }
   .toast { left: 16px; right: 16px; transform: none; max-width: none; }
   .search-panel { padding: 12px; }
 }
+
+
+/* Nome do aluno no quadro mensal: link para o cadastro, sem cara de botão */
+.qd-student-link { background: transparent; border: 0; padding: 0; min-height: 0; color: var(--ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; text-decoration: none; border-radius: 2px; }
+.qd-student-link:hover { background: transparent; color: var(--red-dark); text-decoration: underline; }
+.qd-student-link:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }

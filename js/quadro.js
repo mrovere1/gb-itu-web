@@ -2,8 +2,8 @@
 // Clicar numa célula abre um cartão com os detalhes e as ações que o servidor permite; a ação em si abre a mesma janela
 // de operação de Mensalidades (injetada em openAction). Texto do servidor entra sempre por textContent.
 
-import { createMonthSelect, fullLabel } from './month-select.js?v=62458f9d62';
-import { csvCell } from './workspace.js?v=62458f9d62';
+import { createMonthSelect, fullLabel } from './month-select.js?v=8e968a628c';
+import { csvCell } from './workspace.js?v=8e968a628c';
 
 const PARTS = ['qd-loading', 'qd-error', 'qd-empty', 'qd-ready'];
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
@@ -32,7 +32,7 @@ function suggestedDue(iso, day) {
   return iso + '-' + String(Math.min(typeof day === 'number' && day >= 1 ? day : 10, last)).padStart(2, '0');
 }
 
-export function createQuadro({ doc, api, openAction = () => {}, onAuthFailure = () => {}, download = () => {} }) {
+export function createQuadro({ doc, api, openAction = () => {}, openStudent = () => {}, onAuthFailure = () => {}, download = () => {} }) {
   const $ = (id) => doc.getElementById(id);
   let loaded = false;
   let requestId = 0;
@@ -119,7 +119,11 @@ export function createQuadro({ doc, api, openAction = () => {}, onAuthFailure = 
     rows.forEach((row) => {
       const tr = doc.createElement('tr');
       const name = el('td', 'qd-name');
-      name.appendChild(el('span', 'qd-student', row.nome));
+      const nameBtn = el('button', 'qd-student-link', row.nome);
+      nameBtn.type = 'button';
+      nameBtn.setAttribute('aria-label', 'Abrir cadastro de ' + row.nome);
+      nameBtn.addEventListener('click', () => openStudent(row.student_id));
+      name.appendChild(nameBtn);
       const sub = [row.status && row.status !== 'Ativo' ? row.status : '', row.familia].filter(Boolean).join(' · ');
       if (sub) name.appendChild(el('span', 'muted qd-sub', sub));
       tr.appendChild(name);

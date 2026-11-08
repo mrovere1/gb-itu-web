@@ -37,7 +37,11 @@ function setup(respond = () => ok(DATA())) {
   const downloads = [];
   const api = { call: async (acao, args) => { calls.push({ acao, args }); return respond(acao, args, calls.length); } };
   const openAction = (kind, item, opener, ext) => opened.push({ kind, item, opener, ext });
-  const quadro = createQuadro({ doc: dom.doc, api, openAction, onAuthFailure: (c) => auth.push(c), download: (n, t) => downloads.push([n, t]) });
+  const students = [];
+  const quadro = createQuadro({
+    doc: dom.doc, api, openAction, onAuthFailure: (c) => auth.push(c), download: (n, t) => downloads.push([n, t]),
+    openStudent: (id) => students.push(id),
+  });
   const tbody = () => dom.$('qd-table').children[1];
   const thead = () => dom.$('qd-table').children[0];
   const names = () => tbody().children.map((tr) => tr.children[0].children[0].textContent);
@@ -49,7 +53,7 @@ function setup(respond = () => ok(DATA())) {
     dom.$('qd-comp-list').children.forEach((l) => { l.children[0].checked = isos.includes(l.children[0].value); l.children[0].listeners.change(); });
     dom.click('qd-comp-apply');
   };
-  return { dom, calls, auth, opened, downloads, quadro, tbody, thead, names, cellAt, press, load, pick };
+  return { dom, calls, auth, opened, downloads, students, quadro, tbody, thead, names, cellAt, press, load, pick };
 }
 const texts = (node) => [node._t, ...(node.children || []).flatMap(texts)].filter(Boolean);
 
@@ -307,4 +311,15 @@ test('nada do servidor entra como HTML (nome com tag aparece como texto)', async
   const { names, load } = setup(() => ok(DATA({ alunos: rows })));
   await load();
   assert.ok(names().includes('<img src=x onerror=alert(1)>'));
+});
+
+
+test('nome do aluno é botão que abre o cadastro', async () => {
+  const { tbody, students, load } = setup();
+  await load();
+  const botao = tbody().children[0].children[0].children[0];
+  assert.equal(botao.tag, 'button');
+  assert.equal(botao.textContent, 'Ana Ficticia');
+  botao.listeners.click();
+  assert.deepEqual(students, ['ALU-1']);
 });

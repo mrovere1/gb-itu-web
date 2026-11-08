@@ -1,19 +1,19 @@
 // Liga as peças ao navegador. Único arquivo (com api.js) que menciona fetch.
-import { CONFIG } from './config.js?v=62458f9d62';
-import { loadFirebase } from './firebase.js?v=62458f9d62';
-import { createApi } from './api.js?v=62458f9d62';
-import { createAuth } from './auth.js?v=62458f9d62';
-import { createDashboard } from './dashboard.js?v=62458f9d62';
-import { createStudentForm } from './student-form.js?v=62458f9d62';
-import { createStudents } from './students.js?v=62458f9d62';
-import { createMensalidades } from './mensalidades.js?v=62458f9d62';
-import { createAlunoFull } from './alunofull.js?v=62458f9d62';
-import { createPacote } from './pacote.js?v=62458f9d62';
-import { createQuadro } from './quadro.js?v=62458f9d62';
-import { createDataTable } from './data-table.js?v=62458f9d62';
-import { createToast } from './toast.js?v=62458f9d62';
-import { createGlobalSearch } from './global-search.js?v=62458f9d62';
-import { createApp } from './app.js?v=62458f9d62';
+import { CONFIG } from './config.js?v=8e968a628c';
+import { loadFirebase } from './firebase.js?v=8e968a628c';
+import { createApi } from './api.js?v=8e968a628c';
+import { createAuth } from './auth.js?v=8e968a628c';
+import { createDashboard } from './dashboard.js?v=8e968a628c';
+import { createStudentForm } from './student-form.js?v=8e968a628c';
+import { createStudents } from './students.js?v=8e968a628c';
+import { createMensalidades } from './mensalidades.js?v=8e968a628c';
+import { createAlunoFull } from './alunofull.js?v=8e968a628c';
+import { createPacote } from './pacote.js?v=8e968a628c';
+import { createQuadro } from './quadro.js?v=8e968a628c';
+import { createDataTable } from './data-table.js?v=8e968a628c';
+import { createToast } from './toast.js?v=8e968a628c';
+import { createGlobalSearch } from './global-search.js?v=8e968a628c';
+import { createApp } from './app.js?v=8e968a628c';
 
 const firebase = loadFirebase(CONFIG.firebase);
 let app = null;
@@ -117,6 +117,7 @@ const quadro = createQuadro({
   api,
   onAuthFailure: (code) => app.onAuthFailure(code),
   openAction: (kind, item, opener, ext) => mensalidades.openAction(kind, item, opener, ext),
+  openStudent: (id) => app.openStudent(id),
   download,
 });
 alunofull = createAlunoFull({

@@ -3,7 +3,7 @@
 // Recebe doc e api por injeção; só importa a lista de meses (month-select). Texto do servidor entra sempre por textContent.
 // O resumo na tela é só uma prévia: quem calcula, valida e grava é o servidor.
 
-import { monthChoices, fullLabel } from './month-select.js?v=62458f9d62';
+import { monthChoices, fullLabel } from './month-select.js?v=8e968a628c';
 
 const AUTH_CODES = Object.freeze({ NAO_AUTENTICADO: true, ACESSO_NEGADO: true });
 const STALE = new Set(['VERSAO_DESATUALIZADA', 'ESTADO_INVALIDO', 'NAO_ENCONTRADO']);
